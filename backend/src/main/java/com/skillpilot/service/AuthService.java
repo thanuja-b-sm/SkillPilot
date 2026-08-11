@@ -58,7 +58,7 @@ public class AuthService {
         }
 
         String email = request.getEmail().trim().toLowerCase();
-        if (userRepository.existsByEmail(email)) {
+        if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new DuplicateResourceException("Email address is already registered: " + email);
         }
 
@@ -104,7 +104,7 @@ public class AuthService {
         }
 
         String email = request.getEmail().trim().toLowerCase();
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
@@ -147,7 +147,7 @@ public class AuthService {
         }
 
         String email = request.getEmail().trim().toLowerCase();
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new BadRequestException("No registered account found with email address: " + email));
 
         String resetCode = String.format("%06d", new java.util.Random().nextInt(1000000));
@@ -187,7 +187,7 @@ public class AuthService {
             throw new BadRequestException("Password must be at least 8 characters long and contain at least one number and one uppercase letter");
         }
 
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
 
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
