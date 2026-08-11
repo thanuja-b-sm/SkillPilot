@@ -1,0 +1,46 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  application:
+    name: skillpilot-backend
+
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/skillpilot?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: false
+    validate-on-migrate: false
+    locations: classpath:db/migration
+
+skillpilot:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+  cors:
+    allowed-origin: ${FRONTEND_ORIGIN:http://localhost:3000}
+
+gemini:
+  api-key: ${GEMINI_API_KEY}
+  model: ${GEMINI_MODEL:gemini-flash-latest}
+  enabled: ${GEMINI_ENABLED:true}
+  timeout-ms: ${GEMINI_TIMEOUT_MS:15000}
+  temperature: ${GEMINI_TEMPERATURE:0.1}
+  max-output-tokens: ${GEMINI_MAX_OUTPUT_TOKENS:1000}
+
+openai:
+  api:
+    key: ${OPENAI_API_KEY:}

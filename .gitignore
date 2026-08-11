@@ -1,0 +1,54 @@
+# ==========================================================
+# SkillPilot — Root .gitignore
+# ==========================================================
+
+# ---- Environment & Secrets --------------------------------
+.env
+.env.*
+!.env.example
+!frontend/.env.example
+!backend/.env.example
+
+# ---- Node.js (Frontend) -----------------------------------
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+
+# ---- Maven (Backend & Build Output) ----------------------
+target/
+backend/target/
+backend/*.jar
+# Keep Maven Wrapper files tracked (do NOT ignore)
+!backend/mvnw
+!backend/mvnw.cmd
+!backend/.mvn/
+
+# ---- Java IDE/Build Artifacts ----------------------------
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+
+# ---- Logs -------------------------------------------------
+*.log
+logs/
+
+# ---- OS Files ---------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- IDE & Editor Files -----------------------------------
+.idea/
+*.iml
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ---- Test Coverage ----------------------------------------
+coverage/

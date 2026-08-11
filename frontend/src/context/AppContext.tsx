@@ -1,0 +1,801 @@
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { 
+  PageId, 
+  UserRole, 
+  UserProfile, 
+  Career, 
+  QuestionItem, 
+  CareerMatchResult, 
+  SkillGapItem, 
+  CareerRoadmap,
+  SystemConfig
+} from '../types';
+import { 
+  INITIAL_CAREERS, 
+  INITIAL_QUESTIONNAIRE, 
+  INITIAL_SKILLS, 
+  DEFAULT_SYSTEM_CONFIG
+} from '../data/mockData';
+import { calculateCareerMatch, calculateSkillGaps, generateRoadmapForCareer } from '../utils/careerEngine';
+
+interface ToastAlert {
+  id: string;
+  type: 'success' | 'info' | 'warning' | 'error';
+  message: string;
+}
+
+// Empty profile shell for unauthenticated state
+const EMPTY_USER_PROFILE: UserProfile = {
+  id: '',
+  name: 'Guest',
+  email: '',
+  title: '',
+  education: '',
+  experienceYears: 0,
+  location: '',
+  targetFocus: '',
+  bio: '',
+  skills: [],
+  completionPercentage: 0
+};
+
+interface AppContextType {
+  userRole: UserRole;
+  setUserRole: (role: UserRole) => void;
+  activePage: PageId;
+  navigateTo: (page: PageId) => void;
+  
+  // Auth
+  token: string | null;
+  setToken: (t: string | null) => void;
+  
+  // User Data
+  userProfile: UserProfile;
+  setUserProfile: React.Dispatch<React.SetStateAction<UserProfile>>;
+  updateUserSkill: (skillId: string, level: number) => void;
+  
+  // Questionnaire & Calculations
+  questionnaire: QuestionItem[];
+  questionnaireAnswers: Record<string, string | string[]>;
+  saveQuestionAnswer: (questionId: string, answer: string | string[]) => void;
+  resetQuestionnaire: () => void;
+  
+  // Careers Data & Selection
+  careers: Career[];
+  selectedTargetCareer: Career | null;
+  selectTargetCareer: (careerId: string) => void;
+  
+  // Match & Analysis State
+  careerMatches: CareerMatchResult[];
+  isLoadingMatches: boolean;
+  recalculateCareerMatches: () => void;
+  skillGaps: SkillGapItem[];
+  backendSkillGap?: any;
+  isLoadingSkillGap: boolean;
+  activeRoadmap: CareerRoadmap | null;
+  isLoadingRoadmap: boolean;
+  generateRoadmap: (durationMonths: number) => Promise<void>;
+  
+  // AI State
+  aiEnhancing: boolean;
+  enhanceRoadmapSummaryWithAI: () => Promise<void>;
+  
+  // System Config & Admin CRUD
+  skillsList: typeof INITIAL_SKILLS[number][];
+  systemConfig: SystemConfig;
+  updateSystemConfig: (config: Partial<SystemConfig>) => void;
+  
+  // Admin Operations
+  addCareer: (career: Career) => void;
+  updateCareer: (career: Career) => void;
+  deleteCareer: (careerId: string) => void;
+  addQuestionItem: (item: QuestionItem) => void;
+  deleteQuestionItem: (itemId: string) => void;
+  
+  // Toasts
+  toasts: ToastAlert[];
+  showToast: (message: string, type?: ToastAlert['type']) => void;
+  removeToast: (id: string) => void;
+}
+
+const AppContext = createContext<AppContextType | undefined>(undefined);
+
+export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [userRole, setUserRoleState] = useState<UserRole>('guest');
+  const [activePage, setActivePage] = useState<PageId>('landing');
+  const [token, setTokenState] = useState<string | null>(() => localStorage.getItem('skillpilot_token'));
+  
+  const [userProfile, setUserProfile] = useState<UserProfile>(EMPTY_USER_PROFILE);
+  const [careers, setCareers] = useState<Career[]>(INITIAL_CAREERS);
+  const [questionnaire, setQuestionnaire] = useState<QuestionItem[]>(INITIAL_QUESTIONNAIRE);
+  const [skillsList, setSkillsList] = useState([...INITIAL_SKILLS]);
+  const [systemConfig, setSystemConfig] = useState<SystemConfig>(DEFAULT_SYSTEM_CONFIG);
+  
+  const [questionnaireAnswers, setQuestionnaireAnswers] = useState<Record<string, string | string[]>>({});
+  
+  const [selectedTargetCareerId, setSelectedTargetCareerId] = useState<string>('');
+  const [toasts, setToasts] = useState<ToastAlert[]>([]);
+  const [aiEnhancing, setAiEnhancing] = useState<boolean>(false);
+  const [isLoadingMatches, setIsLoadingMatches] = useState(false);
+  const [isLoadingSkillGap, setIsLoadingSkillGap] = useState(false);
+  const [isLoadingRoadmap, setIsLoadingRoadmap] = useState(false);
+
+  // Helper for Toast Alerts
+  const showToast = (message: string, type: ToastAlert['type'] = 'info') => {
+    const id = Date.now().toString();
+    setToasts(prev => [...prev, { id, type, message }]);
+    setTimeout(() => {
+      removeToast(id);
+    }, 4000);
+  };
+
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
+
+  const [backendCareerMatches, setBackendCareerMatches] = useState<CareerMatchResult[] | null>(null);
+  const [backendSkillGap, setBackendSkillGap] = useState<any | null>(null);
+
+  // Expose token setter so login pages can update context
+  const setToken = (t: string | null) => {
+    setTokenState(t);
+    if (t) {
+      localStorage.setItem('skillpilot_token', t);
+    } else {
+      localStorage.removeItem('skillpilot_token');
+    }
+  };
+
+  const fetchBackendCareerMatches = useCallback((authToken: string) => {
+    setIsLoadingMatches(true);
+    fetch('/api/careers/matches', {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (data && Array.isArray(data) && data.length > 0) {
+        setBackendCareerMatches(data);
+      }
+    })
+    .catch(err => console.warn('Failed to fetch backend career matches:', err))
+    .finally(() => setIsLoadingMatches(false));
+  }, []);
+
+  const fetchBackendSkillGap = useCallback((authToken: string) => {
+    setIsLoadingSkillGap(true);
+    fetch('/api/user/target-career/skill-gap', {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (data) {
+        setBackendSkillGap(data);
+      }
+    })
+    .catch(err => console.warn('Failed to fetch backend skill gap:', err))
+    .finally(() => setIsLoadingSkillGap(false));
+  }, []);
+
+  // Fetch the most recent roadmap for this user (no new generation)
+  const fetchExistingRoadmap = useCallback(async (authToken: string) => {
+    try {
+      const res = await fetch('/api/user/roadmaps', {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setActiveRoadmap(data);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  // Explicit generate roadmap (user-triggered or first time)
+  const generateRoadmap = useCallback(async (durationMonths: number = 6) => {
+    const activeTok = token || localStorage.getItem('skillpilot_token');
+    if (!activeTok) return;
+    setIsLoadingRoadmap(true);
+    try {
+      const res = await fetch('/api/user/roadmaps/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${activeTok}`
+        },
+        body: JSON.stringify({ durationMonths })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setActiveRoadmap(data);
+        showToast(`${durationMonths}-month roadmap generated successfully!`, 'success');
+      } else {
+        showToast('Failed to generate roadmap. Please try again.', 'error');
+      }
+    } catch (err) {
+      console.warn('Failed to generate roadmap:', err);
+      showToast('Unable to reach roadmap generation service.', 'error');
+    } finally {
+      setIsLoadingRoadmap(false);
+    }
+  }, [token]);
+
+  // Initialize session from localStorage token on startup
+  const initializeSession = useCallback(async (savedToken: string) => {
+    try {
+      const res = await fetch('/api/auth/me', {
+        headers: { 'Authorization': `Bearer ${savedToken}` }
+      });
+      if (!res.ok) throw new Error('Session expired');
+      
+      const profile = await res.json();
+      if (profile && profile.id) {
+        setUserProfile(profile);
+        const isAdmin = profile.role?.toLowerCase() === 'admin' || profile.userRole?.toLowerCase() === 'admin' || profile.roles?.includes('ADMIN');
+        setUserRoleState(isAdmin ? 'admin' : 'student');
+        setTokenState(savedToken);
+
+        // Migrate guest questionnaire answers if present
+        const guestAnswersRaw = localStorage.getItem('skillpilot_guest_answers');
+        if (guestAnswersRaw) {
+          try {
+            const guestAns = JSON.parse(guestAnswersRaw);
+            const payload = Object.entries(guestAns).map(([qId, ans]) => ({
+              questionId: qId,
+              selectedOptionIds: Array.isArray(ans) ? ans : [ans]
+            }));
+
+            if (payload.length > 0) {
+              await fetch('/api/questionnaire/answers', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${savedToken}`
+                },
+                body: JSON.stringify({ answers: payload })
+              });
+            }
+            localStorage.removeItem('skillpilot_guest_answers');
+            showToast('Migrated guest self-assessment progress to your account!', 'success');
+          } catch (e) {
+            console.warn('Failed migrating guest answers:', e);
+          }
+        }
+
+        // Fetch questionnaire answers from backend
+        const ansRes = await fetch('/api/questionnaire/answers', {
+          headers: { 'Authorization': `Bearer ${savedToken}` }
+        });
+        if (ansRes.ok) {
+          const userAnswers = await ansRes.json();
+          if (userAnswers && userAnswers.length > 0) {
+            const answersMap: Record<string, string | string[]> = {};
+            userAnswers.forEach((ans: any) => {
+              const optIds = ans.selectedOptionIds || [];
+              answersMap[ans.questionId] = optIds.length === 1 ? optIds[0] : optIds;
+            });
+            setQuestionnaireAnswers(answersMap);
+          }
+        }
+
+        // Fetch user's saved target career from backend
+        const tcRes = await fetch('/api/user/target-career', {
+          headers: { 'Authorization': `Bearer ${savedToken}` }
+        });
+        if (tcRes.ok) {
+          const tc = await tcRes.json();
+          if (tc && tc.careerId) {
+            setSelectedTargetCareerId(tc.careerId);
+          }
+        }
+
+        // Fetch authoritative backend career matches
+        fetchBackendCareerMatches(savedToken);
+        // Fetch skill gap
+        fetchBackendSkillGap(savedToken);
+        // Try to load existing roadmap
+        fetchExistingRoadmap(savedToken);
+      }
+    } catch {
+      localStorage.removeItem('skillpilot_token');
+      setTokenState(null);
+      setUserRoleState('guest');
+      showToast('Session expired. Please sign in again.', 'warning');
+    }
+  }, [fetchBackendCareerMatches, fetchBackendSkillGap, fetchExistingRoadmap]);
+
+  // Synchronize master data & authenticated session on startup
+  useEffect(() => {
+    // Fetch master data from Spring Boot backend
+    fetch('/api/careers')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => { if (data && data.length > 0) setCareers(data); })
+      .catch(err => console.warn('Backend careers fetch fallback', err));
+
+    fetch('/api/skills')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => { if (data && data.length > 0) setSkillsList(data); })
+      .catch(err => console.warn('Backend skills fetch fallback', err));
+
+    fetch('/api/questionnaire')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => { if (data && data.length > 0) setQuestionnaire(data); })
+      .catch(err => console.warn('Backend questionnaire fetch fallback', err));
+
+    const savedToken = localStorage.getItem('skillpilot_token');
+    if (savedToken) {
+      initializeSession(savedToken);
+    }
+  }, []);
+
+  // Role switching & logout logic
+  const setUserRole = (role: UserRole) => {
+    setUserRoleState(role);
+    if (role === 'admin') {
+      setActivePage('admin');
+      showToast('Switched to Administrator Workspace', 'info');
+    } else if (role === 'student') {
+      if (activePage === 'admin' || activePage === 'landing') {
+        setActivePage('results');
+      }
+      showToast('Logged in as Student Profile', 'success');
+    } else {
+      // Full logout — clear all cached state
+      setToken(null);
+      setUserProfile(EMPTY_USER_PROFILE);
+      setBackendCareerMatches(null);
+      setBackendSkillGap(null);
+      setActiveRoadmap(null);
+      setQuestionnaireAnswers({});
+      setSelectedTargetCareerId('');
+      setActivePage('landing');
+      showToast('Logged out of session', 'info');
+    }
+  };
+
+  const navigateTo = (page: PageId) => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setActivePage(page);
+  };
+
+  // Persist User Skill update to Spring Boot backend
+  const updateUserSkill = async (skillId: string, level: number) => {
+    const activeTok = token || localStorage.getItem('skillpilot_token');
+    
+    // Optimistic local update
+    setUserProfile(prev => {
+      const existingIdx = prev.skills.findIndex(s => s.skillId === skillId);
+      let updatedSkills = [...prev.skills];
+      if (existingIdx >= 0) {
+        updatedSkills[existingIdx] = { ...updatedSkills[existingIdx], level };
+      } else {
+        const skillMeta = skillsList.find(s => s.id === skillId);
+        updatedSkills.push({
+          skillId,
+          name: skillMeta ? skillMeta.name : skillId,
+          category: skillMeta ? skillMeta.category : 'Technical',
+          level
+        });
+      }
+      return { ...prev, skills: updatedSkills };
+    });
+
+    if (activeTok) {
+      try {
+        const res = await fetch('/api/user/skills', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${activeTok}`
+          },
+          body: JSON.stringify({ skillId, level })
+        });
+        if (res.ok) {
+          // Refresh full profile to get updated completionPercentage
+          const profRes = await fetch('/api/user/profile', {
+            headers: { 'Authorization': `Bearer ${activeTok}` }
+          });
+          if (profRes.ok) {
+            const updatedProf = await profRes.json();
+            setUserProfile(updatedProf);
+          }
+          fetchBackendCareerMatches(activeTok);
+          fetchBackendSkillGap(activeTok);
+        }
+      } catch (err) {
+        console.error('Error syncing skill rating to backend:', err);
+      }
+    }
+    showToast('Updated skill self-assessment rating', 'success');
+  };
+
+  // Save questionnaire answer
+  const saveQuestionAnswer = async (questionId: string, answer: string | string[]) => {
+    const updatedAnswers = { ...questionnaireAnswers, [questionId]: answer };
+    setQuestionnaireAnswers(updatedAnswers);
+
+    const activeTok = token || localStorage.getItem('skillpilot_token');
+    if (activeTok) {
+      try {
+        const optionIds = Array.isArray(answer) ? answer : [answer];
+        const res = await fetch('/api/questionnaire/answers', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${activeTok}`
+          },
+          body: JSON.stringify({
+            answers: [
+              {
+                questionId,
+                selectedOptionIds: optionIds
+              }
+            ]
+          })
+        });
+
+        if (res.ok) {
+          // Refresh profile to reflect updated readiness completion
+          const profRes = await fetch('/api/user/profile', {
+            headers: { 'Authorization': `Bearer ${activeTok}` }
+          });
+          if (profRes.ok) {
+            const updatedProf = await profRes.json();
+            setUserProfile(updatedProf);
+          }
+          fetchBackendCareerMatches(activeTok);
+        }
+      } catch (err) {
+        console.error('Error persisting questionnaire answer:', err);
+      }
+    } else {
+      localStorage.setItem('skillpilot_guest_answers', JSON.stringify(updatedAnswers));
+    }
+  };
+
+  const resetQuestionnaire = () => {
+    setQuestionnaireAnswers({});
+    showToast('Questionnaire reset. Please answer the questions again.', 'info');
+  };
+
+  // Explicit recalculate career matches
+  const recalculateCareerMatches = () => {
+    const activeTok = token || localStorage.getItem('skillpilot_token');
+    if (activeTok) {
+      fetchBackendCareerMatches(activeTok);
+      showToast('Recalculating career matches from backend…', 'info');
+    }
+  };
+
+  // Compute Career Matches (authoritative backend matches when logged in, local preview for guests)
+  const careerMatches: CareerMatchResult[] = (backendCareerMatches && backendCareerMatches.length > 0)
+    ? backendCareerMatches
+    : careers.map(career => 
+        calculateCareerMatch(career, userProfile, questionnaireAnswers, questionnaire)
+      ).sort((a, b) => b.matchScore - a.matchScore);
+
+  // Selected Target Career object
+  const selectedTargetCareer = (selectedTargetCareerId
+    ? careers.find(c => c.id === selectedTargetCareerId) || null
+    : null) || (careers.length > 0 && userRole !== 'guest' ? null : null);
+
+  // Skill Gaps: derived from backend when authenticated, local calc for guest preview
+  const skillGaps: SkillGapItem[] = (() => {
+    const activeTok = token || localStorage.getItem('skillpilot_token');
+    if (activeTok && backendSkillGap && backendSkillGap.skills) {
+      // Map backend SkillGapItemResponse to frontend SkillGapItem
+      return (backendSkillGap.skills as any[]).map((s: any): SkillGapItem => ({
+        skillId: s.skillId,
+        skillName: s.skillName,
+        category: s.category,
+        currentLevel: s.currentLevel ?? 0,
+        requiredLevel: s.requiredLevel ?? 0,
+        gapAmount: s.gapAmount ?? 0,
+        severity: s.severity as any,
+        isEssential: s.isEssential ?? false,
+        recommendedAction: s.recommendedAction ?? ''
+      }));
+    }
+    // Guest fallback: local calculation
+    return selectedTargetCareer
+      ? calculateSkillGaps(selectedTargetCareer, userProfile)
+      : [];
+  })();
+
+  const selectTargetCareer = (careerId: string) => {
+    setSelectedTargetCareerId(careerId);
+    const target = careers.find(c => c.id === careerId);
+    if (target) {
+      showToast(`Selected "${target.title}" as Target Career!`, 'success');
+    }
+
+    const activeTok = token || localStorage.getItem('skillpilot_token');
+    if (activeTok) {
+      fetch('/api/user/target-career', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${activeTok}`
+        },
+        body: JSON.stringify({ careerId })
+      })
+      .then(async () => {
+        fetchBackendSkillGap(activeTok);
+        // Try to load existing roadmap for new target; don't auto-generate
+        const hadExisting = await fetchExistingRoadmap(activeTok);
+        if (!hadExisting) {
+          setActiveRoadmap(null); // Clear stale roadmap
+        }
+      })
+      .catch(err => console.warn('Failed to persist target career:', err));
+    }
+  };
+
+  // Roadmap state
+  const [activeRoadmap, setActiveRoadmap] = useState<CareerRoadmap | null>(null);
+
+  // For guest view: use local roadmap generation
+  useEffect(() => {
+    const activeTok = token || localStorage.getItem('skillpilot_token');
+    if (!activeTok && selectedTargetCareer) {
+      const defaultRoadmap = generateRoadmapForCareer(selectedTargetCareer, skillGaps);
+      setActiveRoadmap(defaultRoadmap);
+    }
+  }, [selectedTargetCareerId, token]);
+
+  // AI Narrative Enhancer Endpoint Call
+  const enhanceRoadmapSummaryWithAI = async () => {
+    if (!selectedTargetCareer || !activeRoadmap) return;
+    const activeTok = token || localStorage.getItem('skillpilot_token');
+    setAiEnhancing(true);
+    showToast('Sending context to AI wording enhancer...', 'info');
+
+    const topMatch = careerMatches.find(m => m.career.id === selectedTargetCareer.id);
+
+    try {
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      if (activeTok) headers['Authorization'] = `Bearer ${activeTok}`;
+
+      const res = await fetch('/api/ai/enhance-summary', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          careerTitle: selectedTargetCareer.title,
+          currentMatchScore: topMatch ? topMatch.matchScore : 85,
+          keyStrengths: topMatch ? topMatch.keyStrengths : [],
+          keyGaps: topMatch ? topMatch.keyGaps : [],
+          targetRoleGoal: userProfile.targetFocus
+        })
+      });
+
+      const data = await res.json();
+      if (data && data.enhancedExplanation) {
+        setActiveRoadmap(prev => prev ? {
+          ...prev,
+          aiExplanation: `AI-Polished Narrative: ${data.enhancedExplanation}`
+        } : null);
+        showToast('Roadmap explanation summary polished by AI!', 'success');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('AI enhancement complete with system fallback.', 'info');
+    } finally {
+      setAiEnhancing(false);
+    }
+  };
+
+  // Admin CRUD Functions
+  const addCareer = async (newCareer: Career) => {
+    if (token) {
+      try {
+        const res = await fetch('/api/admin/careers', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            title: newCareer.title,
+            category: newCareer.category,
+            description: newCareer.description,
+            averageSalary: newCareer.averageSalary,
+            growthRate: newCareer.growthRate,
+            demandLevel: newCareer.demandLevel,
+            typicalRoles: newCareer.typicalRoles,
+            recommendedPrerequisites: newCareer.recommendedPrerequisites
+          })
+        });
+        if (res.ok) {
+          const saved = await res.json();
+          setCareers(prev => [saved, ...prev]);
+          showToast(`Added new career: ${saved.title}`, 'success');
+          return;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    setCareers(prev => [newCareer, ...prev]);
+    showToast(`Added new career: ${newCareer.title}`, 'success');
+  };
+
+  const updateCareer = async (updated: Career) => {
+    if (token) {
+      try {
+        const res = await fetch(`/api/admin/careers/${updated.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            title: updated.title,
+            category: updated.category,
+            description: updated.description,
+            averageSalary: updated.averageSalary,
+            growthRate: updated.growthRate,
+            demandLevel: updated.demandLevel,
+            typicalRoles: updated.typicalRoles,
+            recommendedPrerequisites: updated.recommendedPrerequisites
+          })
+        });
+        if (res.ok) {
+          const saved = await res.json();
+          setCareers(prev => prev.map(c => c.id === saved.id ? saved : c));
+          showToast(`Updated career details for ${saved.title}`, 'success');
+          return;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    setCareers(prev => prev.map(c => c.id === updated.id ? updated : c));
+    showToast(`Updated career details for ${updated.title}`, 'success');
+  };
+
+  const deleteCareer = async (careerId: string) => {
+    if (token) {
+      try {
+        await fetch(`/api/admin/careers/${careerId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    setCareers(prev => prev.filter(c => c.id !== careerId));
+    showToast(`Deactivated career record`, 'info');
+  };
+
+  const addQuestionItem = async (item: QuestionItem) => {
+    if (token) {
+      try {
+        const res = await fetch('/api/admin/questionnaire', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            section: item.section || 'General',
+            question: item.question,
+            description: item.description,
+            type: item.type || 'single',
+            displayOrder: (item as any).displayOrder || 1
+          })
+        });
+        if (res.ok) {
+          const saved = await res.json();
+          setQuestionnaire(prev => [...prev, saved]);
+          showToast(`Added questionnaire item`, 'success');
+          return;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    setQuestionnaire(prev => [...prev, item]);
+    showToast(`Added questionnaire item`, 'success');
+  };
+
+  const deleteQuestionItem = async (itemId: string) => {
+    if (token) {
+      try {
+        await fetch(`/api/admin/questionnaire/${itemId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    setQuestionnaire(prev => prev.filter(q => q.id !== itemId));
+    showToast(`Removed questionnaire item`, 'info');
+  };
+
+  const updateSystemConfig = async (newCfg: Partial<SystemConfig>) => {
+    if (token) {
+      try {
+        const res = await fetch('/api/admin/config', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            technicalWeight: newCfg.technicalWeight,
+            questionnaireWeight: newCfg.questionnaireWeight,
+            essentialSkillPenalty: newCfg.essentialSkillPenalty,
+            minimumMatchThreshold: newCfg.minimumMatchThreshold
+          })
+        });
+        if (res.ok) {
+          const saved = await res.json();
+          setSystemConfig(prev => ({ ...prev, ...saved }));
+          showToast('Updated system calculation weights in MySQL', 'success');
+          return;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    setSystemConfig(prev => ({ ...prev, ...newCfg }));
+    showToast('Updated system calculation weights', 'success');
+  };
+
+  return (
+    <AppContext.Provider value={{
+      userRole,
+      setUserRole,
+      activePage,
+      navigateTo,
+      token,
+      setToken,
+      userProfile,
+      setUserProfile,
+      updateUserSkill,
+      questionnaire,
+      questionnaireAnswers,
+      saveQuestionAnswer,
+      resetQuestionnaire,
+      careers,
+      selectedTargetCareer,
+      selectTargetCareer,
+      careerMatches,
+      isLoadingMatches,
+      recalculateCareerMatches,
+      skillGaps,
+      backendSkillGap,
+      isLoadingSkillGap,
+      activeRoadmap,
+      isLoadingRoadmap,
+      generateRoadmap,
+      aiEnhancing,
+      enhanceRoadmapSummaryWithAI,
+      skillsList,
+      systemConfig,
+      updateSystemConfig,
+      addCareer,
+      updateCareer,
+      deleteCareer,
+      addQuestionItem,
+      deleteQuestionItem,
+      toasts,
+      showToast,
+      removeToast
+    }}>
+      {children}
+    </AppContext.Provider>
+  );
+};
+
+export const useApp = () => {
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error('useApp must be used within an AppProvider');
+  }
+  return context;
+};
