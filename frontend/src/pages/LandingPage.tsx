@@ -80,92 +80,17 @@ export const LandingPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Hero Right Practical Showcase Visual */}
-            <div className="lg:col-span-5">
-              <div className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-xl space-y-5 relative overflow-hidden group">
+            {/* Hero Right Visual Image */}
+            <div className="lg:col-span-5 flex justify-center items-center">
+              <div className="relative w-full rounded-2xl overflow-hidden border border-slate-200/90 shadow-2xl bg-white p-2 group hover:shadow-blue-500/10 transition-all duration-300">
                 {/* Decorative background glow */}
                 <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
-                
-                {/* Header / Title Bar */}
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100 relative z-10">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-400" />
-                    <div className="w-3 h-3 rounded-full bg-amber-400" />
-                    <div className="w-3 h-3 rounded-full bg-emerald-400" />
-                    <span className="text-xs font-bold text-slate-800 ml-2">Platform Architecture</span>
-                  </div>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-md border border-blue-200">
-                    <Sparkles className="w-3 h-3 text-blue-600" />
-                    Interactive Engine
-                  </span>
-                </div>
 
-                {/* Workflow Graphic Breakdown */}
-                <div className="space-y-3 relative z-10">
-                  <div className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center justify-between">
-                    <span>How SkillPilot Works</span>
-                    <span className="text-[11px] font-normal text-slate-600">3-Step Process</span>
-                  </div>
-
-                  {/* Step 1: Input */}
-                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
-                      1
-                    </div>
-                    <div className="space-y-1">
-                      <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                        <span>Self-Assessment & Profile</span>
-                        <span className="text-[10px] bg-slate-200 text-slate-700 font-medium px-1.5 py-0.2 rounded">User Input</span>
-                      </h4>
-                      <p className="text-[11px] text-slate-600 leading-snug">
-                        Log your current skill ratings (1-5 scale) across core technical domains.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Step 2: Algorithmic Matching */}
-                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
-                      2
-                    </div>
-                    <div className="space-y-1">
-                      <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                        <span>Algorithmic Gap Engine</span>
-                        <span className="text-[10px] bg-indigo-100 text-indigo-800 font-medium px-1.5 py-0.2 rounded">Deterministic</span>
-                      </h4>
-                      <p className="text-[11px] text-slate-600 leading-snug">
-                        System computes skill gaps against 11 target industry career matrices.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Step 3: Phased Roadmap */}
-                  <div className="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-200/80 flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
-                      3
-                    </div>
-                    <div className="space-y-1">
-                      <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                        <span>Phased Execution Roadmap</span>
-                        <span className="text-[10px] bg-emerald-100 text-emerald-800 font-medium px-1.5 py-0.2 rounded">Actionable</span>
-                      </h4>
-                      <p className="text-[11px] text-slate-600 leading-snug">
-                        Generates a 6-12 month phased milestone plan with optional Gemini AI insights.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Call to Action Button */}
-                <button
-                  onClick={() => {
-                    navigateTo('questionnaire');
-                  }}
-                  className="w-full py-3 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-sm hover:shadow flex items-center justify-center gap-2 group"
-                >
-                  <span>Begin Self-Assessment Wizard</span>
-                  <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-                </button>
+                <img
+                  src="/hero-illustration.png"
+                  alt="SkillPilot Career Intelligence Dashboard Preview"
+                  className="w-full h-auto object-cover rounded-xl transform group-hover:scale-[1.01] transition-transform duration-500"
+                />
               </div>
             </div>
 
