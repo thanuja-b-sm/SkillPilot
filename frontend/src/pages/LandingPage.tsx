@@ -159,9 +159,6 @@ export const LandingPage: React.FC = () => {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-slate-900 rounded-3xl p-8 sm:p-12 text-white shadow-xl space-y-10">
           <div className="max-w-2xl space-y-3">
-            <span className="text-xs font-bold text-sky-400 uppercase tracking-widest bg-sky-950/80 px-3 py-1 rounded-full border border-sky-800">
-              What You Get
-            </span>
             <h2 className="text-2xl sm:text-3xl font-bold">
               Everything You Need to Reach Your Career Goals
             </h2>
