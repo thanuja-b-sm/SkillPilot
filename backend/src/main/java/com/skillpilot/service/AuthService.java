@@ -31,20 +31,24 @@ public class AuthService {
     private final JwtTokenProvider tokenProvider;
     private final AuthenticationManager authenticationManager;
     private final UserProfileMapper userProfileMapper;
+    private final EmailService emailService;
 
     private static final Pattern PASSWORD_PATTERN = Pattern.compile("^(?=.*[0-9])(?=.*[A-Z]).{8,}$");
 
+    @org.springframework.beans.factory.annotation.Autowired
     public AuthService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             JwtTokenProvider tokenProvider,
             AuthenticationManager authenticationManager,
-            UserProfileMapper userProfileMapper) {
+            UserProfileMapper userProfileMapper,
+            @org.springframework.beans.factory.annotation.Autowired(required = false) EmailService emailService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenProvider = tokenProvider;
         this.authenticationManager = authenticationManager;
         this.userProfileMapper = userProfileMapper;
+        this.emailService = emailService;
     }
 
     @Transactional
@@ -151,8 +155,12 @@ public class AuthService {
 
         RESET_CODE_MAP.put(email, new ResetCodeDetails(resetCode, expiresAt));
 
+        if (emailService != null) {
+            emailService.sendPasswordResetEmail(email, resetCode);
+        }
+
         return com.skillpilot.dto.response.ForgotPasswordResponse.builder()
-                .message("Verification reset code generated successfully")
+                .message("Verification reset code sent to your email inbox")
                 .resetCode(resetCode)
                 .build();
     }

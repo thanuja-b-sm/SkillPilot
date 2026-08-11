@@ -84,11 +84,8 @@ export const LoginPage: React.FC = () => {
         setForgotError(data?.message || 'Unable to generate reset code');
         return;
       }
-      if (data?.resetCode) {
-        setResetCode(data.resetCode);
-      }
       setForgotStep(2);
-      setForgotSuccess(`Verification code sent! ${data?.resetCode ? `(Code: ${data.resetCode})` : ''}`);
+      setForgotSuccess(`Verification reset code sent to ${forgotEmail}! Please check your email inbox.`);
     } catch {
       setForgotError('Failed to connect to authentication server');
     } finally {

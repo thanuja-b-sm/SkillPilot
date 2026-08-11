@@ -26,6 +26,18 @@ spring:
     validate-on-migrate: false
     locations: classpath:db/migration
 
+  mail:
+    host: ${SPRING_MAIL_HOST:smtp.gmail.com}
+    port: ${SPRING_MAIL_PORT:587}
+    username: ${SPRING_MAIL_USERNAME:thanujasm61@gmail.com}
+    password: ${SPRING_MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 skillpilot:
   jwt:
     secret: ${JWT_SECRET}
