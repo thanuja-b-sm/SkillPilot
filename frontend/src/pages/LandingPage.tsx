@@ -155,49 +155,49 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Feature Showcase Grid */}
+      {/* Feature Showcase Grid — User Value Driven */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-slate-900 rounded-3xl p-8 sm:p-12 text-white shadow-xl space-y-10">
           <div className="max-w-2xl space-y-3">
             <span className="text-xs font-bold text-sky-400 uppercase tracking-widest bg-sky-950/80 px-3 py-1 rounded-full border border-sky-800">
-              Core Capabilities
+              What You Get
             </span>
             <h2 className="text-2xl sm:text-3xl font-bold">
-              Engineered for Academic Trust & Usability
+              Everything You Need to Reach Your Career Goals
             </h2>
             <p className="text-xs sm:text-sm text-slate-300">
-              Every score is verifiable. AI serves as a supportive formatting layer rather than a black-box decision maker.
+              Clear insights, personalized guidance, and a step-by-step path tailored to your skills.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-slate-800/80 p-6 rounded-2xl border border-slate-700/80 space-y-3">
               <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
-                <BarChart2 className="w-5 h-5" />
+                <Target className="w-5 h-5" />
               </div>
-              <h3 className="text-base font-bold text-white">Transparent Career Ranking</h3>
+              <h3 className="text-base font-bold text-white">Find Your Perfect Career Match</h3>
               <p className="text-xs text-slate-300 leading-relaxed">
-                SkillPilot evaluates required vs current skill levels with essential penalties to deliver mathematical percentage match scores.
+                Discover which tech roles fit your strengths best, complete with expected salary ranges and market growth rates.
               </p>
             </div>
 
             <div className="bg-slate-800/80 p-6 rounded-2xl border border-slate-700/80 space-y-3">
               <div className="w-10 h-10 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold">
-                <GitCommit className="w-5 h-5" />
+                <BarChart2 className="w-5 h-5" />
               </div>
-              <h3 className="text-base font-bold text-white">Severity-Coded Gap Matrix</h3>
+              <h3 className="text-base font-bold text-white">Know Exactly What to Learn</h3>
               <p className="text-xs text-slate-300 leading-relaxed">
-                Categorizes missing skills into Critical, High, Medium, and Low severity levels with actionable learning remedies.
+                Get a clear breakdown of the exact skills you need for your target job so you never waste time studying the wrong things.
               </p>
             </div>
 
             <div className="bg-slate-800/80 p-6 rounded-2xl border border-slate-700/80 space-y-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
-                <Sparkles className="w-5 h-5" />
+                <Map className="w-5 h-5" />
               </div>
-              <h3 className="text-base font-bold text-white">AI Wording Enhancer</h3>
+              <h3 className="text-base font-bold text-white">Follow a Phased Action Plan</h3>
               <p className="text-xs text-slate-300 leading-relaxed">
-                Improves summary readability with Gemini 3.6 Flash without altering underlying system metrics or rankings.
+                Execute a realistic 6 to 12-month step-by-step roadmap with clear milestones and AI-enhanced progress summaries.
               </p>
             </div>
           </div>
