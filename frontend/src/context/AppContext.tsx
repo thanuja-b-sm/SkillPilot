@@ -120,8 +120,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isLoadingSkillGap, setIsLoadingSkillGap] = useState(false);
   const [isLoadingRoadmap, setIsLoadingRoadmap] = useState(false);
 
-  // Helper for Toast Alerts
+  // Helper for Toast Alerts (Suppresses all toasts except logout notifications per user preference)
   const showToast = (message: string, type: ToastAlert['type'] = 'info') => {
+    if (!message.toLowerCase().includes('logged out') && !message.toLowerCase().includes('logout')) {
+      return;
+    }
     const id = Date.now().toString();
     setToasts(prev => [...prev, { id, type, message }]);
     setTimeout(() => {
