@@ -148,7 +148,7 @@ public class AuthService {
 
         String email = request.getEmail().trim().toLowerCase();
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("No account found with email address: " + email));
+                .orElseThrow(() -> new BadRequestException("No registered account found with email address: " + email));
 
         String resetCode = String.format("%06d", new java.util.Random().nextInt(1000000));
         java.time.LocalDateTime expiresAt = java.time.LocalDateTime.now().plusMinutes(15);

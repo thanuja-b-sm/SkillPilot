@@ -81,7 +81,7 @@ export const LoginPage: React.FC = () => {
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        setForgotError(data?.message || 'Unable to generate reset code');
+        setForgotError(data?.message || 'No registered account found with this email address.');
         return;
       }
       setForgotStep(2);
