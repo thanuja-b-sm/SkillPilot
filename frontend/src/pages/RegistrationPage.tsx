@@ -49,6 +49,7 @@ export const RegistrationPage: React.FC = () => {
       const data = await res.json();
       setToken(data.token);
       setUserProfile(data.userProfile);
+      setUserRole('student');
       setIsSuccess(true);
       showToast('Account created successfully!', 'success');
     } catch (err) {
