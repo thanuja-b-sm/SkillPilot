@@ -58,33 +58,24 @@ export const RegistrationPage: React.FC = () => {
 
   if (isSuccess) {
     return (
-      <div className="max-w-md mx-auto my-12 bg-white p-8 rounded-2xl border border-slate-200 shadow-xl text-center space-y-5">
-        <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+      <div className="max-w-md mx-auto my-12 bg-white p-8 rounded-3xl border border-slate-200/90 shadow-xl text-center space-y-5">
+        <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto shadow-xs">
           <CheckCircle2 className="w-8 h-8" />
         </div>
-        <h2 className="text-2xl font-bold text-slate-900">Welcome to SkillPilot!</h2>
+        <h2 className="text-2xl font-bold text-slate-950">Welcome to SkillPilot!</h2>
         <p className="text-xs text-slate-600 leading-relaxed">
-          Your student profile <strong className="text-slate-900">{formData.email}</strong> has been initialized. You can now proceed to your profile setup or launch the Career Discovery Questionnaire.
+          Your account <strong className="text-slate-900">{formData.email}</strong> is ready. Set up your skill profile to unlock personalized career matches and questionnaire discovery.
         </p>
-        <div className="pt-2 flex flex-col gap-2">
-          <button
-            onClick={() => {
-              setUserRole('student');
-              navigateTo('questionnaire');
-            }}
-            className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-xs transition-colors flex items-center justify-center gap-2"
-          >
-            <span>Start Career Discovery</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
+        <div className="pt-2">
           <button
             onClick={() => {
               setUserRole('student');
               navigateTo('profile');
             }}
-            className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs transition-colors"
+            className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2.5 group"
           >
-            Review Profile Assessment
+            <span>Set Up Your Skill Profile</span>
+            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
           </button>
         </div>
       </div>
