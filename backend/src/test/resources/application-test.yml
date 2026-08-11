@@ -1,24 +1,25 @@
 # =========================================================
 # application-test.yml — Spring Boot TEST profile
 # Loaded when @ActiveProfiles("test") is used in test classes.
-# Uses the same local MySQL database as development.
+# Uses isolated in-memory H2 database to protect dev MySQL.
 # =========================================================
 
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/skillpilot?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-    username: root
-    password: "2005"
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:h2:mem:skillpilot_test;DB_CLOSE_DELAY=-1;MODE=MySQL;CASE_INSENSITIVE_IDENTIFIERS=TRUE
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
 
   jpa:
     hibernate:
       ddl-auto: validate
     show-sql: false
+    database-platform: org.hibernate.dialect.H2Dialect
 
   flyway:
     enabled: true
-    baseline-on-migrate: false
+    baseline-on-migrate: true
     validate-on-migrate: false
     locations: classpath:db/migration
 
