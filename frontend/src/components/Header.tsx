@@ -22,32 +22,6 @@ export const Header: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
-      {/* Top Banner Strip */}
-      <div className="bg-slate-900 text-slate-300 text-xs py-1.5 px-4 sm:px-8 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1 bg-blue-500/20 text-blue-300 border border-blue-400/30 text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full">
-            <Sparkles className="w-3 h-3 text-blue-400" /> System Active
-          </span>
-          <span className="hidden sm:inline text-slate-400">
-            SkillPilot Career Discovery & Roadmap Intelligence Engine
-          </span>
-        </div>
-
-        {/* Auth Status Indicator */}
-        <div className="flex items-center gap-2">
-          {userRole === 'guest' ? (
-            <span className="text-[10px] font-medium text-slate-400">Public View — Sign in for personalised analysis</span>
-          ) : userRole === 'admin' ? (
-            <span className="inline-flex items-center gap-1 bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full">
-              <ShieldCheck className="w-3 h-3" /> Admin Session Active
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full">
-              <Sparkles className="w-3 h-3" /> Logged in as {userProfile.name || 'Student'}
-            </span>
-          )}
-        </div>
-      </div>
 
       {/* Main Header Nav */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
@@ -126,7 +100,7 @@ export const Header: React.FC = () => {
                   activePage === 'profile' ? 'bg-white text-blue-700 font-semibold shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <User className="w-3.5 h-3.5" /> 1. Profile
+                <User className="w-3.5 h-3.5" /> Profile
               </button>
 
               <ChevronRight className="w-3 h-3 text-slate-400" />
@@ -137,7 +111,7 @@ export const Header: React.FC = () => {
                   activePage === 'questionnaire' ? 'bg-white text-blue-700 font-semibold shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <HelpCircle className="w-3.5 h-3.5" /> 2. Assessment
+                <HelpCircle className="w-3.5 h-3.5" /> Assessment
               </button>
 
               <ChevronRight className="w-3 h-3 text-slate-400" />
@@ -148,7 +122,7 @@ export const Header: React.FC = () => {
                   activePage === 'results' ? 'bg-white text-blue-700 font-semibold shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <BarChart2 className="w-3.5 h-3.5" /> 3. Matches
+                <BarChart2 className="w-3.5 h-3.5" /> Matches
               </button>
 
               <ChevronRight className="w-3 h-3 text-slate-400" />
@@ -159,7 +133,7 @@ export const Header: React.FC = () => {
                   activePage === 'target-selection' ? 'bg-white text-blue-700 font-semibold shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <Target className="w-3.5 h-3.5" /> 4. Target
+                <Target className="w-3.5 h-3.5" />  Target
               </button>
 
               <ChevronRight className="w-3 h-3 text-slate-400" />
@@ -170,7 +144,7 @@ export const Header: React.FC = () => {
                   activePage === 'skill-gap' ? 'bg-white text-blue-700 font-semibold shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <GitCommit className="w-3.5 h-3.5" /> 5. Gap Analysis
+                <GitCommit className="w-3.5 h-3.5" /> Gap Analysis
               </button>
 
               <ChevronRight className="w-3 h-3 text-slate-400" />
@@ -181,7 +155,7 @@ export const Header: React.FC = () => {
                   activePage === 'roadmap' ? 'bg-white text-blue-700 font-semibold shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <Map className="w-3.5 h-3.5" /> 6. Roadmap
+                <Map className="w-3.5 h-3.5" /> Roadmap
               </button>
             </div>
           )}
@@ -273,42 +247,42 @@ export const Header: React.FC = () => {
             onClick={() => navigateTo('profile')}
             className={`px-2.5 py-1 rounded-md shrink-0 ${activePage === 'profile' ? 'bg-blue-600 text-white font-medium' : 'text-slate-600 bg-white border border-slate-200'}`}
           >
-            1. Profile
+            Profile
           </button>
           <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />
           <button
             onClick={() => navigateTo('questionnaire')}
             className={`px-2.5 py-1 rounded-md shrink-0 ${activePage === 'questionnaire' ? 'bg-blue-600 text-white font-medium' : 'text-slate-600 bg-white border border-slate-200'}`}
           >
-            2. Assessment
+            Assessment
           </button>
           <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />
           <button
             onClick={() => navigateTo('results')}
             className={`px-2.5 py-1 rounded-md shrink-0 ${activePage === 'results' ? 'bg-blue-600 text-white font-medium' : 'text-slate-600 bg-white border border-slate-200'}`}
           >
-            3. Matches
+            Matches
           </button>
           <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />
           <button
             onClick={() => navigateTo('target-selection')}
             className={`px-2.5 py-1 rounded-md shrink-0 ${activePage === 'target-selection' ? 'bg-blue-600 text-white font-medium' : 'text-slate-600 bg-white border border-slate-200'}`}
           >
-            4. Target
+            Target
           </button>
           <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />
           <button
             onClick={() => navigateTo('skill-gap')}
             className={`px-2.5 py-1 rounded-md shrink-0 ${activePage === 'skill-gap' ? 'bg-blue-600 text-white font-medium' : 'text-slate-600 bg-white border border-slate-200'}`}
           >
-            5. Gap Analysis
+            Gap Analysis
           </button>
           <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />
           <button
             onClick={() => navigateTo('roadmap')}
             className={`px-2.5 py-1 rounded-md shrink-0 ${activePage === 'roadmap' ? 'bg-blue-600 text-white font-medium' : 'text-slate-600 bg-white border border-slate-200'}`}
           >
-            6. Roadmap
+            Roadmap
           </button>
         </div>
       )}

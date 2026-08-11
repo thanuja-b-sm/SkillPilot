@@ -33,7 +33,7 @@ export const LandingPage: React.FC = () => {
               </div>
 
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-950 tracking-tight leading-[1.15]">
-                Navigate Your Future with <span className="text-blue-600 underline decoration-blue-300 decoration-wavy decoration-2">Algorithmic Precision</span>
+                Discover Your Ideal Career with <span className="text-blue-600 underline decoration-blue-300 decoration-wavy decoration-2">Clear Direction</span>
               </h1>
 
               <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl font-normal">
