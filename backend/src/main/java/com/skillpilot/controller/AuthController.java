@@ -34,6 +34,18 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/forgot-password")
+    public ResponseEntity<com.skillpilot.dto.response.ForgotPasswordResponse> forgotPassword(@Valid @RequestBody com.skillpilot.dto.request.ForgotPasswordRequest request) {
+        com.skillpilot.dto.response.ForgotPasswordResponse response = authService.forgotPassword(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<com.skillpilot.dto.response.ForgotPasswordResponse> resetPassword(@Valid @RequestBody com.skillpilot.dto.request.ResetPasswordRequest request) {
+        com.skillpilot.dto.response.ForgotPasswordResponse response = authService.resetPassword(request);
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponse> getCurrentUser(@AuthenticationPrincipal SecurityUser securityUser) {
         if (securityUser == null) {

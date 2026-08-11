@@ -126,4 +126,70 @@ public class AuthService {
                 .orElseThrow(() -> new ResourceNotFoundException("Authenticated user profile not found with ID: " + userId));
         return userProfileMapper.toProfileResponse(user);
     }
+
+    private static final java.util.concurrent.ConcurrentHashMap<String, ResetCodeDetails> RESET_CODE_MAP = new java.util.concurrent.ConcurrentHashMap<>();
+
+    @lombok.AllArgsConstructor
+    @lombok.Getter
+    private static class ResetCodeDetails {
+        private final String code;
+        private final java.time.LocalDateTime expiresAt;
+    }
+
+    @Transactional(readOnly = true)
+    public com.skillpilot.dto.response.ForgotPasswordResponse forgotPassword(com.skillpilot.dto.request.ForgotPasswordRequest request) {
+        if (request == null || request.getEmail() == null || request.getEmail().isBlank()) {
+            throw new BadRequestException("Email address is required");
+        }
+
+        String email = request.getEmail().trim().toLowerCase();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("No account found with email address: " + email));
+
+        String resetCode = String.format("%06d", new java.util.Random().nextInt(1000000));
+        java.time.LocalDateTime expiresAt = java.time.LocalDateTime.now().plusMinutes(15);
+
+        RESET_CODE_MAP.put(email, new ResetCodeDetails(resetCode, expiresAt));
+
+        return com.skillpilot.dto.response.ForgotPasswordResponse.builder()
+                .message("Verification reset code generated successfully")
+                .resetCode(resetCode)
+                .build();
+    }
+
+    @Transactional
+    public com.skillpilot.dto.response.ForgotPasswordResponse resetPassword(com.skillpilot.dto.request.ResetPasswordRequest request) {
+        if (request == null || request.getEmail() == null || request.getResetCode() == null || request.getNewPassword() == null) {
+            throw new BadRequestException("Email, reset code, and new password are required");
+        }
+
+        String email = request.getEmail().trim().toLowerCase();
+        ResetCodeDetails details = RESET_CODE_MAP.get(email);
+
+        if (details == null || !details.getCode().equals(request.getResetCode().trim())) {
+            throw new BadRequestException("Invalid verification reset code");
+        }
+
+        if (details.getExpiresAt().isBefore(java.time.LocalDateTime.now())) {
+            RESET_CODE_MAP.remove(email);
+            throw new BadRequestException("Verification reset code has expired. Please request a new code");
+        }
+
+        if (!PASSWORD_PATTERN.matcher(request.getNewPassword()).matches()) {
+            throw new BadRequestException("Password must be at least 8 characters long and contain at least one number and one uppercase letter");
+        }
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        RESET_CODE_MAP.remove(email);
+
+        return com.skillpilot.dto.response.ForgotPasswordResponse.builder()
+                .message("Password updated successfully. You can now log in with your new password.")
+                .resetCode(null)
+                .build();
+    }
 }
