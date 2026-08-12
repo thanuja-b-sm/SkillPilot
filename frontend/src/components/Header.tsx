@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 
 export const Header: React.FC = () => {
-  const { userRole, setUserRole, activePage, navigateTo, userProfile } = useApp();
+  const { userRole, setUserRole, activePage, navigateTo, userProfile, isLoadingAuth } = useApp();
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
@@ -44,7 +44,11 @@ export const Header: React.FC = () => {
 
         {/* Navigation Bar Links */}
         <nav className="hidden lg:flex items-center gap-1 text-sm font-medium">
-          {userRole === 'guest' && (
+          {isLoadingAuth ? (
+            <div className="flex items-center gap-2 text-xs text-slate-400 animate-pulse">
+              <span>Syncing session...</span>
+            </div>
+          ) : userRole === 'guest' ? (
             <>
               <button
                 onClick={() => navigateTo('landing')}
@@ -90,9 +94,7 @@ export const Header: React.FC = () => {
                 <Lock className="w-3 h-3 text-amber-500 ml-0.5" />
               </button>
             </>
-          )}
-
-          {(userRole === 'student' || (userRole === 'admin' && activePage !== 'admin')) && (
+          ) : (userRole === 'student' || (userRole === 'admin' && activePage !== 'admin')) ? (
             <div className="flex items-center bg-slate-100/80 p-1 rounded-xl border border-slate-200 text-xs">
               <button
                 onClick={() => navigateTo('profile')}
@@ -158,9 +160,7 @@ export const Header: React.FC = () => {
                 <Map className="w-3.5 h-3.5" /> Roadmap
               </button>
             </div>
-          )}
-
-          {userRole === 'admin' && activePage === 'admin' && (
+          ) : (
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 font-medium text-xs">
                 <ShieldCheck className="w-4 h-4 text-amber-600" /> Admin Dataset Console
@@ -171,7 +171,11 @@ export const Header: React.FC = () => {
 
         {/* Action Buttons */}
         <div className="flex items-center gap-3">
-          {userRole === 'guest' ? (
+          {isLoadingAuth ? (
+            <div className="px-3.5 py-1.5 bg-slate-100 rounded-xl text-xs text-slate-500 font-medium animate-pulse">
+              Restoring Session...
+            </div>
+          ) : userRole === 'guest' ? (
             <div className="flex items-center gap-2">
               <button
                 onClick={() => navigateTo('login')}
