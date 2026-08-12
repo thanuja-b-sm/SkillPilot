@@ -14,5 +14,7 @@ public interface CareerMatchResultRepository extends JpaRepository<CareerMatchRe
 
     Optional<CareerMatchResult> findByUserIdAndCareerId(String userId, String careerId);
 
+    long countByCareerId(String careerId);
+
     void deleteByUserId(String userId);
 }

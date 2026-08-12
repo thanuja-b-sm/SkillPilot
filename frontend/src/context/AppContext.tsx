@@ -91,13 +91,23 @@ interface AppContextType {
   updateCareer: (career: Career) => void;
   deleteCareer: (careerId: string) => void;
   activateCareer: (careerId: string) => Promise<void>;
+  addSkill: (skill: { name: string; category: string; description?: string }) => Promise<void>;
+  updateSkill: (id: string, skill: { name: string; category: string; description?: string }) => Promise<void>;
+  deleteSkill: (id: string) => Promise<void>;
   activateSkill: (skillId: string) => Promise<void>;
   addCareerRequirement: (careerId: string, req: { skillId: string; requiredLevel: number; isEssential?: boolean }) => Promise<void>;
   deleteCareerRequirement: (reqId: string) => Promise<void>;
   addQuestionSkillMapping: (req: { optionId: string; skillId: string; weight: number }) => Promise<void>;
   deleteQuestionSkillMapping: (mappingId: string) => Promise<void>;
   addQuestionItem: (item: QuestionItem) => void;
+  updateQuestionItem: (item: QuestionItem) => Promise<void>;
   deleteQuestionItem: (itemId: string) => void;
+  addQuestionOption: (questionId: string, optionText: string, displayOrder?: number) => Promise<void>;
+  updateQuestionOption: (optionId: string, optionText: string, displayOrder?: number) => Promise<void>;
+  deleteQuestionOption: (optionId: string) => Promise<void>;
+  refreshCareers: () => Promise<void>;
+  refreshSkills: () => Promise<void>;
+  refreshQuestionnaire: () => Promise<void>;
   
   // Toasts
   toasts: ToastAlert[];
@@ -562,6 +572,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const activeTok = token || localStorage.getItem('skillpilot_token');
     if (activeTok) {
+      // Load career-specific questionnaire from backend
+      fetch(`/api/questionnaire/career/${careerId}`, {
+        headers: { 'Authorization': `Bearer ${activeTok}` }
+      })
+      .then(r => r.ok ? r.json() : null)
+      .then(qData => {
+        if (qData && Array.isArray(qData) && qData.length > 0) {
+          setQuestionnaire(qData);
+        }
+      })
+      .catch(err => console.warn('Failed to fetch career-specific questionnaire:', err));
+
       fetch('/api/user/target-career', {
         method: 'PUT',
         headers: {
@@ -885,11 +907,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         });
         if (res.ok) {
           showToast('Added question skill mapping', 'success');
-          fetch('/api/admin/questionnaire', {
-            headers: { 'Authorization': `Bearer ${activeTok}` }
-          })
-          .then(r => r.ok ? r.json() : null)
-          .then(data => { if (data) setQuestionnaire(data); });
+          refreshQuestionnaire();
         }
       } catch (e) {
         console.error('Error adding question skill mapping:', e);
@@ -906,13 +924,182 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           headers: { 'Authorization': `Bearer ${activeTok}` }
         });
         showToast('Removed question skill mapping', 'info');
-        fetch('/api/admin/questionnaire', {
-          headers: { 'Authorization': `Bearer ${activeTok}` }
-        })
-        .then(r => r.ok ? r.json() : null)
-        .then(data => { if (data) setQuestionnaire(data); });
+        refreshQuestionnaire();
       } catch (e) {
         console.error('Error deleting question skill mapping:', e);
+      }
+    }
+  };
+
+  const refreshCareers = async () => {
+    const activeTok = token || localStorage.getItem('skillpilot_token');
+    const endpoint = activeTok ? '/api/admin/careers' : '/api/careers';
+    const headers = activeTok ? { 'Authorization': `Bearer ${activeTok}` } : {};
+    try {
+      const res = await fetch(endpoint, { headers });
+      if (res.ok) setCareers(await res.json());
+    } catch (e) {
+      console.error('Error refreshing careers:', e);
+    }
+  };
+
+  const refreshSkills = async () => {
+    const activeTok = token || localStorage.getItem('skillpilot_token');
+    const endpoint = activeTok ? '/api/admin/skills' : '/api/skills';
+    const headers = activeTok ? { 'Authorization': `Bearer ${activeTok}` } : {};
+    try {
+      const res = await fetch(endpoint, { headers });
+      if (res.ok) setSkillsList(await res.json());
+    } catch (e) {
+      console.error('Error refreshing skills:', e);
+    }
+  };
+
+  const refreshQuestionnaire = async () => {
+    const activeTok = token || localStorage.getItem('skillpilot_token');
+    const endpoint = activeTok ? '/api/admin/questionnaire' : '/api/questionnaire';
+    const headers = activeTok ? { 'Authorization': `Bearer ${activeTok}` } : {};
+    try {
+      const res = await fetch(endpoint, { headers });
+      if (res.ok) setQuestionnaire(await res.json());
+    } catch (e) {
+      console.error('Error refreshing questionnaire:', e);
+    }
+  };
+
+  const addSkill = async (skill: { name: string; category: string; description?: string }) => {
+    const activeTok = token || localStorage.getItem('skillpilot_token');
+    if (activeTok) {
+      try {
+        const res = await fetch('/api/admin/skills', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${activeTok}` },
+          body: JSON.stringify(skill)
+        });
+        if (res.ok) {
+          const saved = await res.json();
+          setSkillsList(prev => [...prev, saved]);
+          showToast(`Added skill: ${saved.name}`, 'success');
+          return;
+        }
+      } catch (e) {
+        console.error('Error adding skill:', e);
+      }
+    }
+  };
+
+  const updateSkill = async (id: string, skill: { name: string; category: string; description?: string }) => {
+    const activeTok = token || localStorage.getItem('skillpilot_token');
+    if (activeTok) {
+      try {
+        const res = await fetch(`/api/admin/skills/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${activeTok}` },
+          body: JSON.stringify(skill)
+        });
+        if (res.ok) {
+          const saved = await res.json();
+          setSkillsList(prev => prev.map(s => s.id === id ? saved : s));
+          showToast(`Updated skill: ${saved.name}`, 'success');
+          return;
+        }
+      } catch (e) {
+        console.error('Error updating skill:', e);
+      }
+    }
+  };
+
+  const deleteSkill = async (id: string) => {
+    const activeTok = token || localStorage.getItem('skillpilot_token');
+    if (activeTok) {
+      try {
+        await fetch(`/api/admin/skills/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${activeTok}` }
+        });
+        setSkillsList(prev => prev.filter(s => s.id !== id));
+        showToast('Deactivated skill', 'info');
+      } catch (e) {
+        console.error('Error deleting skill:', e);
+      }
+    }
+  };
+
+  const updateQuestionItem = async (item: QuestionItem) => {
+    const activeTok = token || localStorage.getItem('skillpilot_token');
+    if (activeTok) {
+      try {
+        const res = await fetch(`/api/admin/questionnaire/${item.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${activeTok}` },
+          body: JSON.stringify({
+            section: item.section,
+            question: item.question,
+            description: item.description,
+            type: item.type,
+            displayOrder: (item as any).displayOrder || 1
+          })
+        });
+        if (res.ok) {
+          showToast('Updated question item', 'success');
+          refreshQuestionnaire();
+        }
+      } catch (e) {
+        console.error('Error updating question:', e);
+      }
+    }
+  };
+
+  const addQuestionOption = async (questionId: string, optionText: string, displayOrder: number = 1) => {
+    const activeTok = token || localStorage.getItem('skillpilot_token');
+    if (activeTok) {
+      try {
+        const res = await fetch(`/api/admin/questions/${questionId}/options`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${activeTok}` },
+          body: JSON.stringify({ optionText, displayOrder })
+        });
+        if (res.ok) {
+          showToast('Added answer option', 'success');
+          refreshQuestionnaire();
+        }
+      } catch (e) {
+        console.error('Error adding option:', e);
+      }
+    }
+  };
+
+  const updateQuestionOption = async (optionId: string, optionText: string, displayOrder: number = 1) => {
+    const activeTok = token || localStorage.getItem('skillpilot_token');
+    if (activeTok) {
+      try {
+        const res = await fetch(`/api/admin/question-options/${optionId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${activeTok}` },
+          body: JSON.stringify({ optionText, displayOrder })
+        });
+        if (res.ok) {
+          showToast('Updated answer option', 'success');
+          refreshQuestionnaire();
+        }
+      } catch (e) {
+        console.error('Error updating option:', e);
+      }
+    }
+  };
+
+  const deleteQuestionOption = async (optionId: string) => {
+    const activeTok = token || localStorage.getItem('skillpilot_token');
+    if (activeTok) {
+      try {
+        await fetch(`/api/admin/question-options/${optionId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${activeTok}` }
+        });
+        showToast('Removed answer option', 'info');
+        refreshQuestionnaire();
+      } catch (e) {
+        console.error('Error deleting option:', e);
       }
     }
   };
@@ -953,13 +1140,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       updateCareer,
       deleteCareer,
       activateCareer,
+      addSkill,
+      updateSkill,
+      deleteSkill,
       activateSkill,
       addCareerRequirement,
       deleteCareerRequirement,
       addQuestionSkillMapping,
       deleteQuestionSkillMapping,
       addQuestionItem,
+      updateQuestionItem,
       deleteQuestionItem,
+      addQuestionOption,
+      updateQuestionOption,
+      deleteQuestionOption,
+      refreshCareers,
+      refreshSkills,
+      refreshQuestionnaire,
       toasts,
       showToast,
       removeToast

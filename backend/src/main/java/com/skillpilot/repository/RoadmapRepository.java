@@ -9,4 +9,6 @@ import java.util.Optional;
 @Repository
 public interface RoadmapRepository extends JpaRepository<Roadmap, String> {
     Optional<Roadmap> findByUserIdAndCareerId(String userId, String careerId);
+
+    long countByCareerId(String careerId);
 }
