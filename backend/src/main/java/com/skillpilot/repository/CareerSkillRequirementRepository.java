@@ -10,5 +10,6 @@ import java.util.Optional;
 @Repository
 public interface CareerSkillRequirementRepository extends JpaRepository<CareerSkillRequirement, String> {
     List<CareerSkillRequirement> findByCareerId(String careerId);
+    List<CareerSkillRequirement> findBySkillId(String skillId);
     Optional<CareerSkillRequirement> findByCareerIdAndSkillId(String careerId, String skillId);
 }

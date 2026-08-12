@@ -17,6 +17,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import com.skillpilot.dto.response.CareerImpactResponse;
+import com.skillpilot.repository.CareerMatchResultRepository;
+import com.skillpilot.repository.RoadmapRepository;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,6 +29,8 @@ public class CareerService {
     private final CareerRepository careerRepository;
     private final SkillRepository skillRepository;
     private final CareerSkillRequirementRepository requirementRepository;
+    private final CareerMatchResultRepository matchResultRepository;
+    private final RoadmapRepository roadmapRepository;
     private final CareerMapper careerMapper;
 
     @Transactional(readOnly = true)
@@ -190,6 +195,39 @@ public class CareerService {
         com.skillpilot.entity.CareerSkillRequirement reqEntity = requirementRepository.findById(requirementId)
                 .orElseThrow(() -> new ResourceNotFoundException("CareerRequirement", "id", requirementId));
         requirementRepository.delete(reqEntity);
+    }
+
+    @Transactional(readOnly = true)
+    public CareerImpactResponse getCareerImpact(String careerId) {
+        Career career = careerRepository.findById(careerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Career", "id", careerId));
+
+        List<com.skillpilot.entity.CareerSkillRequirement> reqs = requirementRepository.findByCareerId(careerId);
+        int requiredSkillCount = reqs.size();
+        int essentialSkillCount = (int) reqs.stream().filter(r -> Boolean.TRUE.equals(r.getIsEssential())).count();
+        List<String> requiredSkillNames = reqs.stream()
+                .map(r -> r.getSkill().getName())
+                .collect(Collectors.toList());
+
+        long activeMatchResultCount = matchResultRepository.countByCareerId(careerId);
+        long activeRoadmapCount = roadmapRepository.countByCareerId(careerId);
+
+        boolean isConfigurationComplete = requiredSkillCount > 0 && Boolean.TRUE.equals(career.getIsActive());
+
+        return CareerImpactResponse.builder()
+                .careerId(career.getId())
+                .title(career.getTitle())
+                .category(career.getCategory())
+                .isActive(Boolean.TRUE.equals(career.getIsActive()))
+                .requiredSkillCount(requiredSkillCount)
+                .essentialSkillCount(essentialSkillCount)
+                .questionnaireCount(4) // standard active discovery questionnaire questions
+                .optionMappingCount(reqs.size())
+                .activeMatchResultCount((int) activeMatchResultCount)
+                .activeRoadmapCount((int) activeRoadmapCount)
+                .isConfigurationComplete(isConfigurationComplete)
+                .requiredSkillNames(requiredSkillNames)
+                .build();
     }
 
     private DemandLevel parseDemandLevel(String val) {

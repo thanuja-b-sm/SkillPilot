@@ -20,6 +20,14 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import com.skillpilot.dto.response.CareerImpactResponse;
+import com.skillpilot.dto.response.SkillImpactResponse;
+import com.skillpilot.dto.response.SystemHealthResponse;
+import com.skillpilot.service.CareerService;
+import com.skillpilot.service.QuestionnaireService;
+import com.skillpilot.service.SkillService;
+import com.skillpilot.service.SystemConfigService;
+
 @RestController
 @RequestMapping("/api/admin")
 @PreAuthorize("hasRole('ADMIN')")
@@ -29,6 +37,7 @@ public class AdminMasterDataController {
     private final CareerService careerService;
     private final SkillService skillService;
     private final QuestionnaireService questionnaireService;
+    private final SystemConfigService systemConfigService;
 
     // --- CAREERS ---
     @GetMapping("/careers")
@@ -172,5 +181,21 @@ public class AdminMasterDataController {
     public ResponseEntity<Void> deleteCareerRequirement(@PathVariable String id) {
         careerService.deleteRequirement(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // --- IMPACT & HEALTH AUDIT ---
+    @GetMapping("/careers/{id}/impact")
+    public ResponseEntity<CareerImpactResponse> getCareerImpact(@PathVariable String id) {
+        return ResponseEntity.ok(careerService.getCareerImpact(id));
+    }
+
+    @GetMapping("/skills/{id}/impact")
+    public ResponseEntity<SkillImpactResponse> getSkillImpact(@PathVariable String id) {
+        return ResponseEntity.ok(skillService.getSkillImpact(id));
+    }
+
+    @GetMapping("/health-check")
+    public ResponseEntity<SystemHealthResponse> getSystemHealth() {
+        return ResponseEntity.ok(systemConfigService.getSystemHealth());
     }
 }

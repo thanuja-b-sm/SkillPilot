@@ -12,11 +12,18 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.skillpilot.dto.response.SkillImpactResponse;
+import com.skillpilot.repository.CareerSkillRequirementRepository;
+import com.skillpilot.repository.QuestionSkillMappingRepository;
+import com.skillpilot.entity.CareerSkillRequirement;
+
 @Service
 @RequiredArgsConstructor
 public class SkillService {
 
     private final SkillRepository skillRepository;
+    private final CareerSkillRequirementRepository requirementRepository;
+    private final QuestionSkillMappingRepository mappingRepository;
 
     @Transactional(readOnly = true)
     public List<Skill> getActiveSkills() {
@@ -94,5 +101,34 @@ public class SkillService {
         // Soft deactivation
         skill.setIsActive(false);
         skillRepository.save(skill);
+    }
+
+    @Transactional(readOnly = true)
+    public SkillImpactResponse getSkillImpact(String skillId) {
+        Skill skill = skillRepository.findById(skillId)
+                .orElseThrow(() -> new ResourceNotFoundException("Skill", "id", skillId));
+
+        List<CareerSkillRequirement> reqs = requirementRepository.findBySkillId(skillId);
+        List<SkillImpactResponse.CareerSummary> affectedCareers = reqs.stream()
+                .map(r -> SkillImpactResponse.CareerSummary.builder()
+                        .id(r.getCareer().getId())
+                        .title(r.getCareer().getTitle())
+                        .isActive(Boolean.TRUE.equals(r.getCareer().getIsActive()))
+                        .build())
+                .distinct()
+                .collect(Collectors.toList());
+
+        long questionnaireMappingCount = mappingRepository.countBySkillId(skillId);
+
+        return SkillImpactResponse.builder()
+                .skillId(skill.getId())
+                .name(skill.getName())
+                .category(skill.getCategory())
+                .isActive(Boolean.TRUE.equals(skill.getIsActive()))
+                .careerCount(affectedCareers.size())
+                .careerRequirementCount(reqs.size())
+                .questionnaireMappingCount((int) questionnaireMappingCount)
+                .affectedCareers(affectedCareers)
+                .build();
     }
 }

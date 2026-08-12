@@ -2,6 +2,10 @@ package com.skillpilot.service;
 
 import com.skillpilot.dto.request.SystemConfigUpdateRequest;
 import com.skillpilot.dto.response.SystemConfigResponse;
+import com.skillpilot.dto.response.SystemHealthResponse;
+import com.skillpilot.entity.Career;
+import com.skillpilot.entity.Skill;
+import com.skillpilot.entity.Question;
 import com.skillpilot.entity.SystemConfig;
 import com.skillpilot.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -9,7 +13,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -54,6 +60,46 @@ public class SystemConfigService {
 
     private final CareerSkillRequirementRepository careerSkillRequirementRepository;
     private final QuestionSkillMappingRepository questionSkillMappingRepository;
+
+    @Transactional(readOnly = true)
+    public SystemHealthResponse getSystemHealth() {
+        List<String> warnings = new ArrayList<>();
+        List<String> errors = new ArrayList<>();
+
+        List<Career> activeCareers = careerRepository.findByIsActiveTrue();
+        for (Career c : activeCareers) {
+            if (careerSkillRequirementRepository.findByCareerId(c.getId()).isEmpty()) {
+                warnings.add("Active career '" + c.getTitle() + "' has 0 required skills configured.");
+            }
+        }
+
+        List<Skill> activeSkills = skillRepository.findByIsActiveTrue();
+        for (Skill s : activeSkills) {
+            if (careerSkillRequirementRepository.findBySkillId(s.getId()).isEmpty()) {
+                warnings.add("Active skill '" + s.getName() + "' is not assigned to any career requirement.");
+            }
+        }
+
+        List<Question> questions = questionRepository.findAll();
+        for (Question q : questions) {
+            if (q.getOptions() == null || q.getOptions().isEmpty()) {
+                errors.add("Question '" + q.getQuestion() + "' has no configured answer options.");
+            }
+        }
+
+        String status = errors.isEmpty() ? (warnings.isEmpty() ? "HEALTHY" : "WARNING") : "ERROR";
+
+        return SystemHealthResponse.builder()
+                .status(status)
+                .activeCareersCount(activeCareers.size())
+                .activeSkillsCount(activeSkills.size())
+                .totalRequirementsCount((int) careerSkillRequirementRepository.count())
+                .totalQuestionnaireMappingsCount((int) questionSkillMappingRepository.count())
+                .totalQuestionsCount(questions.size())
+                .warnings(warnings)
+                .errors(errors)
+                .build();
+    }
 
     @Transactional(readOnly = true)
     public Map<String, Object> getDashboardStats() {
