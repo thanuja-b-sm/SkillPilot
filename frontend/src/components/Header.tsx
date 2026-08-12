@@ -27,7 +27,7 @@ export const Header: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         {/* Brand Logo */}
         <div 
-          onClick={() => navigateTo(userRole === 'admin' ? 'admin' : 'landing')}
+          onClick={() => { if (!isLoadingAuth) navigateTo(userRole === 'admin' ? 'admin' : 'landing'); }}
           className="flex items-center gap-3 cursor-pointer group shrink-0"
         >
           <div className="w-10 h-10 rounded-xl bg-slate-900 text-blue-400 flex items-center justify-center shadow-md border border-slate-800 group-hover:bg-blue-600 group-hover:text-white transition-colors">
@@ -245,7 +245,7 @@ export const Header: React.FC = () => {
       </div>
 
       {/* Mobile Step Strip for Student View */}
-      {(userRole === 'student' || (userRole === 'admin' && activePage !== 'admin')) && (
+      {!isLoadingAuth && (userRole === 'student' || (userRole === 'admin' && activePage !== 'admin')) && (
         <div className="lg:hidden bg-slate-50 border-t border-slate-200 px-4 py-2 overflow-x-auto flex items-center gap-2 text-xs">
           <button
             onClick={() => navigateTo('profile')}
