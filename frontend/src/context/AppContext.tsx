@@ -572,6 +572,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const activeTok = token || localStorage.getItem('skillpilot_token');
     if (activeTok) {
+      // Load career-specific questionnaire from backend
+      fetch(`/api/questionnaire/career/${careerId}`, {
+        headers: { 'Authorization': `Bearer ${activeTok}` }
+      })
+      .then(r => r.ok ? r.json() : null)
+      .then(qData => {
+        if (qData && Array.isArray(qData) && qData.length > 0) {
+          setQuestionnaire(qData);
+        }
+      })
+      .catch(err => console.warn('Failed to fetch career-specific questionnaire:', err));
+
       fetch('/api/user/target-career', {
         method: 'PUT',
         headers: {
