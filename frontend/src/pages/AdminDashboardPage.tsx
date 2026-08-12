@@ -19,7 +19,8 @@ import {
   UserCheck,
   Loader2,
   Users,
-  Map
+  Map,
+  AlertCircle
 } from 'lucide-react';
 
 export const AdminDashboardPage: React.FC = () => {
@@ -78,17 +79,22 @@ export const AdminDashboardPage: React.FC = () => {
   const [weightsForm, setWeightsForm] = useState({ ...systemConfig });
   const [isLoadingStats, setIsLoadingStats] = useState(false);
 
+  const [healthData, setHealthData] = useState<Record<string, any> | null>(null);
+
   useEffect(() => {
-    if (activeTab === 'overview' && !adminStats) {
+    if (activeTab === 'overview' && (!adminStats || !healthData)) {
       const tok = token || localStorage.getItem('skillpilot_token');
       if (!tok) return;
       setIsLoadingStats(true);
-      fetch('/api/admin/stats', {
-        headers: { 'Authorization': `Bearer ${tok}` }
+      Promise.all([
+        fetch('/api/admin/stats', { headers: { 'Authorization': `Bearer ${tok}` } }).then(r => r.ok ? r.json() : null),
+        fetch('/api/admin/health-check', { headers: { 'Authorization': `Bearer ${tok}` } }).then(r => r.ok ? r.json() : null)
+      ])
+      .then(([stats, health]) => {
+        if (stats) setAdminStats(stats);
+        if (health) setHealthData(health);
       })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data) setAdminStats(data); })
-      .catch(err => console.warn('Failed to fetch admin stats:', err))
+      .catch(err => console.warn('Failed to fetch admin dashboard health stats:', err))
       .finally(() => setIsLoadingStats(false));
     }
   }, [activeTab]);
@@ -459,6 +465,13 @@ export const AdminDashboardPage: React.FC = () => {
               <p className="text-xs text-slate-500">Adjust mathematical coefficients for match score generation.</p>
             </div>
 
+            <div className="p-3.5 bg-blue-50 border border-blue-200 rounded-2xl flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-blue-900 leading-relaxed font-medium">
+                <strong>Scoring Calculation Impact Warning:</strong> Adjusting system config parameters updates <em>FUTURE</em> career match scores, skill-gap readiness calculations, and roadmap prioritization. Existing historical result snapshots remain preserved in MySQL.
+              </p>
+            </div>
+
             <form onSubmit={handleSaveWeights} className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
@@ -505,12 +518,38 @@ export const AdminDashboardPage: React.FC = () => {
         {/* System Overview Metrics Tab */}
         {activeTab === 'overview' && (
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-md space-y-6">
-            <div className="pb-4 border-b border-slate-100">
-              <h2 className="text-lg font-bold text-slate-950 flex items-center gap-2">
-                <Layers className="w-5 h-5 text-blue-600" /> Platform System Health
-              </h2>
-              <p className="text-xs text-slate-500 mt-0.5">Live counts from the database — refreshed on tab open.</p>
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div>
+                <h2 className="text-lg font-bold text-slate-950 flex items-center gap-2">
+                  <Layers className="w-5 h-5 text-blue-600" /> Platform System Health
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">Live counts and database consistency health from MySQL.</p>
+              </div>
+
+              {healthData && (
+                <div className={`px-3 py-1 rounded-xl text-xs font-extrabold flex items-center gap-1.5 ${
+                  healthData.status === 'HEALTHY' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                  healthData.status === 'WARNING' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                  'bg-red-100 text-red-800 border border-red-300'
+                }`}>
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>HEALTH STATUS: {healthData.status}</span>
+                </div>
+              )}
             </div>
+
+            {healthData && healthData.warnings && healthData.warnings.length > 0 && (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-1.5">
+                <h4 className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                  <AlertCircle className="w-4 h-4 text-amber-600" /> System Audit Warnings ({healthData.warnings.length})
+                </h4>
+                <ul className="list-disc list-inside text-[11px] text-amber-800 space-y-1">
+                  {healthData.warnings.map((w: string, idx: number) => (
+                    <li key={idx}>{w}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {isLoadingStats && (
               <div className="flex items-center justify-center gap-2 py-8 text-slate-500 text-xs">
