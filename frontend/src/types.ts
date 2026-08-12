@@ -14,6 +14,14 @@ export type UserRole = 'guest' | 'student' | 'admin';
 
 export type GapSeverity = 'critical' | 'high' | 'medium' | 'low';
 
+export interface SkillMeta {
+  id: string;
+  name: string;
+  category: 'Technical' | 'Domain Knowledge' | 'Tools & Frameworks' | 'Soft Skills' | string;
+  description?: string;
+  isActive?: boolean;
+}
+
 export interface UserSkill {
   skillId: string;
   name: string;

@@ -1,6 +1,7 @@
 package com.skillpilot.service;
 
 import com.skillpilot.dto.request.CareerRequest;
+import com.skillpilot.dto.response.CareerRequirementResponse;
 import com.skillpilot.dto.response.CareerResponse;
 import com.skillpilot.entity.Career;
 import com.skillpilot.entity.DemandLevel;
@@ -47,10 +48,41 @@ public class CareerService {
     }
 
     @Transactional(readOnly = true)
+    public List<CareerRequirementResponse> getSkillsForCareer(String careerId) {
+        Career career = careerRepository.findById(careerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Career", "id", careerId));
+        if (Boolean.FALSE.equals(career.getIsActive())) {
+            throw new ResourceNotFoundException("Career", "id", careerId);
+        }
+        return requirementRepository.findByCareerId(careerId).stream()
+                .filter(req -> req.getSkill() != null && Boolean.TRUE.equals(req.getSkill().getIsActive()))
+                .map(careerMapper::toCareerRequirementResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public List<CareerResponse> getAllCareersAdmin() {
+        return getAllCareersAdmin(null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CareerResponse> getAllCareersAdmin(String search, Boolean active) {
         return careerRepository.findAll().stream()
+                .filter(c -> active == null || active.equals(c.getIsActive()))
+                .filter(c -> search == null || search.isBlank() ||
+                        (c.getTitle() != null && c.getTitle().toLowerCase().contains(search.toLowerCase())) ||
+                        (c.getCategory() != null && c.getCategory().toLowerCase().contains(search.toLowerCase())))
                 .map(careerMapper::toCareerResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public CareerResponse activateCareer(String id) {
+        Career career = careerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Career", "id", id));
+        career.setIsActive(true);
+        Career saved = careerRepository.save(career);
+        return careerMapper.toCareerResponse(saved);
     }
 
     @Transactional

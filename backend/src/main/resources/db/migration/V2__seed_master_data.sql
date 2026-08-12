@@ -3,7 +3,7 @@
 
 -- 1. SYSTEM CONFIG
 INSERT INTO system_configs (id, technical_weight, questionnaire_weight, essential_skill_penalty, minimum_match_threshold, is_active)
-VALUES ('sys-cfg-1', 0.500, 0.350, 0.150, 40, TRUE);
+VALUES ('sys-cfg-1', 0.500, 0.350, 0.150, 45, TRUE);
 
 -- 2. MASTER SKILLS
 INSERT INTO skills (id, name, category, description, is_active) VALUES

@@ -126,7 +126,7 @@ public class Phase10AAdminAuditTest {
                 .technicalWeight(new BigDecimal("0.500"))
                 .questionnaireWeight(new BigDecimal("0.350"))
                 .essentialSkillPenalty(new BigDecimal("0.150"))
-                .minimumMatchThreshold(40)
+                .minimumMatchThreshold(45)
                 .build();
         mockMvc.perform(put("/api/admin/config")
                         .header("Authorization", "Bearer " + adminToken)

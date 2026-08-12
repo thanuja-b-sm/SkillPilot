@@ -55,6 +55,12 @@ public class CareerMatchResult {
     @Builder.Default
     private String scoringVersion = "v2.4";
 
+    @Column(name = "config_snapshot", columnDefinition = "TEXT")
+    private String configSnapshot;
+
+    @Column(name = "requirements_snapshot", columnDefinition = "TEXT")
+    private String requirementsSnapshot;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

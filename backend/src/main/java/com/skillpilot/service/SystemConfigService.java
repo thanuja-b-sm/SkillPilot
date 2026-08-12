@@ -52,12 +52,17 @@ public class SystemConfigService {
         return toResponse(saved);
     }
 
+    private final CareerSkillRequirementRepository careerSkillRequirementRepository;
+    private final QuestionSkillMappingRepository questionSkillMappingRepository;
+
     @Transactional(readOnly = true)
     public Map<String, Object> getDashboardStats() {
         Map<String, Object> stats = new HashMap<>();
         stats.put("activeCareers", careerRepository.countByIsActiveTrue());
         stats.put("activeSkills", skillRepository.countByIsActiveTrue());
         stats.put("activeQuestions", questionRepository.countByIsActiveTrue());
+        stats.put("careerSkillRequirementCount", careerSkillRequirementRepository.count());
+        stats.put("questionSkillMappingCount", questionSkillMappingRepository.count());
         stats.put("totalUsers", userRepository.count());
         stats.put("totalRoadmaps", roadmapRepository.count());
         stats.put("totalAiLogs", aiGenerationLogRepository.count());
@@ -72,7 +77,7 @@ public class SystemConfigService {
                         .technicalWeight(new BigDecimal("0.500"))
                         .questionnaireWeight(new BigDecimal("0.350"))
                         .essentialSkillPenalty(new BigDecimal("0.150"))
-                        .minimumMatchThreshold(40)
+                        .minimumMatchThreshold(45)
                         .isActive(true)
                         .build()));
     }

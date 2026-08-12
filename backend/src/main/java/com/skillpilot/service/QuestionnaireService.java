@@ -25,6 +25,9 @@ public class QuestionnaireService {
 
     private final QuestionRepository questionRepository;
     private final QuestionOptionRepository questionOptionRepository;
+    private final QuestionSkillMappingRepository questionSkillMappingRepository;
+    private final CareerSkillRequirementRepository requirementRepository;
+    private final SkillRepository skillRepository;
     private final UserQuestionAnswerRepository userQuestionAnswerRepository;
     private final UserRepository userRepository;
     private final QuestionnaireMapper questionnaireMapper;
@@ -39,8 +42,53 @@ public class QuestionnaireService {
     }
 
     @Transactional(readOnly = true)
+    public List<QuestionResponse> getQuestionnaireForCareer(String careerId) {
+        if (careerId == null || careerId.isBlank()) {
+            return getActiveQuestionnaire();
+        }
+
+        List<Question> activeQuestions = questionRepository.findByIsActiveTrueOrderByDisplayOrderAsc();
+        List<QuestionResponse> relevant = new ArrayList<>();
+
+        for (Question q : activeQuestions) {
+            boolean matchesCareer = false;
+            if (q.getOptions() != null) {
+                for (QuestionOption opt : q.getOptions()) {
+                    if (opt.getAssociatedSkills() != null) {
+                        for (QuestionSkillMapping mapping : opt.getAssociatedSkills()) {
+                            String mappedSkillId = mapping.getSkill() != null ? mapping.getSkill().getId() : "";
+                            if (requirementRepository.findByCareerIdAndSkillId(careerId, mappedSkillId).isPresent()) {
+                                matchesCareer = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (matchesCareer) break;
+                }
+            }
+            if (matchesCareer) {
+                relevant.add(questionnaireMapper.toQuestionResponse(q));
+            }
+        }
+
+        if (relevant.isEmpty()) {
+            return getActiveQuestionnaire();
+        }
+        return relevant;
+    }
+
+    @Transactional(readOnly = true)
     public List<QuestionResponse> getAllQuestionsAdmin() {
+        return getAllQuestionsAdmin(null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<QuestionResponse> getAllQuestionsAdmin(String search, Boolean active) {
         return questionRepository.findAll().stream()
+                .filter(q -> active == null || active.equals(q.getIsActive()))
+                .filter(q -> search == null || search.isBlank() ||
+                        (q.getQuestion() != null && q.getQuestion().toLowerCase().contains(search.toLowerCase())) ||
+                        (q.getSection() != null && q.getSection().toLowerCase().contains(search.toLowerCase())))
                 .sorted(Comparator.comparingInt(Question::getDisplayOrder))
                 .map(questionnaireMapper::toQuestionResponse)
                 .collect(Collectors.toList());
@@ -227,6 +275,56 @@ public class QuestionnaireService {
         QuestionOption option = questionOptionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("QuestionOption", "id", id));
         questionOptionRepository.delete(option);
+    }
+
+    @Transactional
+    public QuestionOptionResponse.SkillMappingResponse createQuestionSkillMapping(com.skillpilot.dto.request.QuestionSkillMappingRequest req) {
+        QuestionOption option = questionOptionRepository.findById(req.getOptionId())
+                .orElseThrow(() -> new ResourceNotFoundException("QuestionOption", "id", req.getOptionId()));
+        Skill skill = skillRepository.findById(req.getSkillId())
+                .orElseThrow(() -> new ResourceNotFoundException("Skill", "id", req.getSkillId()));
+
+        if (Boolean.FALSE.equals(skill.getIsActive())) {
+            throw new BadRequestException("Skill is currently inactive: " + req.getSkillId());
+        }
+
+        if (req.getWeight() < 1 || req.getWeight() > 5) {
+            throw new BadRequestException("Mapping weight must be between 1 and 5");
+        }
+
+        QuestionSkillMapping mapping = questionSkillMappingRepository.findByOptionIdAndSkillId(req.getOptionId(), req.getSkillId())
+                .orElseGet(() -> QuestionSkillMapping.builder()
+                        .id(UUID.randomUUID().toString())
+                        .option(option)
+                        .skill(skill)
+                        .build());
+
+        mapping.setWeight(req.getWeight());
+        QuestionSkillMapping saved = questionSkillMappingRepository.save(mapping);
+        return questionnaireMapper.toSkillMappingResponse(saved);
+    }
+
+    @Transactional
+    public QuestionOptionResponse.SkillMappingResponse updateQuestionSkillMapping(String id, com.skillpilot.dto.request.QuestionSkillMappingRequest req) {
+        QuestionSkillMapping mapping = questionSkillMappingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("QuestionSkillMapping", "id", id));
+
+        if (req.getWeight() != null) {
+            if (req.getWeight() < 1 || req.getWeight() > 5) {
+                throw new BadRequestException("Mapping weight must be between 1 and 5");
+            }
+            mapping.setWeight(req.getWeight());
+        }
+
+        QuestionSkillMapping saved = questionSkillMappingRepository.save(mapping);
+        return questionnaireMapper.toSkillMappingResponse(saved);
+    }
+
+    @Transactional
+    public void deleteQuestionSkillMapping(String id) {
+        QuestionSkillMapping mapping = questionSkillMappingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("QuestionSkillMapping", "id", id));
+        questionSkillMappingRepository.delete(mapping);
     }
 
     private QuestionType parseQuestionType(String typeStr) {

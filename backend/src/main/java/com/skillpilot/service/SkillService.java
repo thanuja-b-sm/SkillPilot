@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,7 +37,25 @@ public class SkillService {
 
     @Transactional(readOnly = true)
     public List<Skill> getAllSkillsAdmin() {
-        return skillRepository.findAll();
+        return getAllSkillsAdmin(null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Skill> getAllSkillsAdmin(String search, Boolean active) {
+        return skillRepository.findAll().stream()
+                .filter(s -> active == null || active.equals(s.getIsActive()))
+                .filter(s -> search == null || search.isBlank() ||
+                        (s.getName() != null && s.getName().toLowerCase().contains(search.toLowerCase())) ||
+                        (s.getCategory() != null && s.getCategory().toLowerCase().contains(search.toLowerCase())))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public Skill activateSkill(String id) {
+        Skill skill = skillRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Skill", "id", id));
+        skill.setIsActive(true);
+        return skillRepository.save(skill);
     }
 
     @Transactional

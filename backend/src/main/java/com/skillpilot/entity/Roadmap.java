@@ -42,6 +42,9 @@ public class Roadmap {
     @Column(name = "ai_explanation", columnDefinition = "TEXT")
     private String aiExplanation;
 
+    @Column(name = "generation_context", columnDefinition = "TEXT")
+    private String generationContext;
+
     @Column(nullable = false, length = 20)
     @Builder.Default
     private String status = "active";

@@ -83,6 +83,23 @@ public class CareerDiscoveryService {
                             .career(career)
                             .build());
 
+            String configSnapshot = null;
+            String reqsSnapshot = null;
+            try {
+                SystemConfig sysCfg = careerScoringEngine.getCurrentSystemConfig();
+                if (sysCfg != null) {
+                    configSnapshot = objectMapper.writeValueAsString(sysCfg);
+                }
+                if (career.getRequiredSkills() != null) {
+                    reqsSnapshot = objectMapper.writeValueAsString(career.getRequiredSkills().stream().map(r -> Map.of(
+                            "skillId", r.getSkill() != null ? r.getSkill().getId() : "",
+                            "skillName", r.getSkill() != null ? r.getSkill().getName() : "",
+                            "requiredLevel", r.getRequiredLevel(),
+                            "isEssential", r.getIsEssential()
+                    )).collect(Collectors.toList()));
+                }
+            } catch (Exception ignored) {}
+
             entity.setMatchScore(calc.getMatchScore());
             entity.setRankPosition(rank++);
             entity.setConfidenceLevel(calc.getConfidenceLevel());
@@ -90,7 +107,9 @@ public class CareerDiscoveryService {
             entity.setSystemCalculatedBadge(calc.getSystemCalculatedBadge());
             entity.setKeyStrengthsJson(strengthsJson);
             entity.setKeyGapsJson(gapsJson);
-            entity.setScoringVersion("v2.4");
+            entity.setScoringVersion(calc.getSystemCalculatedBadge().replace("Deterministic Algorithm ", ""));
+            entity.setConfigSnapshot(configSnapshot);
+            entity.setRequirementsSnapshot(reqsSnapshot);
 
             entitiesToSave.add(entity);
 

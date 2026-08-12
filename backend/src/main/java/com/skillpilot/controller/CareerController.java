@@ -24,4 +24,9 @@ public class CareerController {
     public ResponseEntity<CareerResponse> getCareerById(@PathVariable String id) {
         return ResponseEntity.ok(careerService.getCareerById(id));
     }
+
+    @GetMapping("/{id}/skills")
+    public ResponseEntity<List<com.skillpilot.dto.response.CareerRequirementResponse>> getSkillsForCareer(@PathVariable String id) {
+        return ResponseEntity.ok(careerService.getSkillsForCareer(id));
+    }
 }

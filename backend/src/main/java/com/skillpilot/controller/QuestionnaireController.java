@@ -25,6 +25,11 @@ public class QuestionnaireController {
         return ResponseEntity.ok(questionnaireService.getActiveQuestionnaire());
     }
 
+    @GetMapping("/career/{careerId}")
+    public ResponseEntity<List<QuestionResponse>> getQuestionnaireForCareer(@PathVariable String careerId) {
+        return ResponseEntity.ok(questionnaireService.getQuestionnaireForCareer(careerId));
+    }
+
     @PostMapping("/answers")
     public ResponseEntity<List<UserQuestionAnswerResponse>> submitAnswers(
             @AuthenticationPrincipal SecurityUser securityUser,

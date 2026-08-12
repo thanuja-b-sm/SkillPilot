@@ -33,6 +33,12 @@ export const AdminDashboardPage: React.FC = () => {
     addCareer, 
     updateCareer, 
     deleteCareer, 
+    activateCareer,
+    activateSkill,
+    addCareerRequirement,
+    deleteCareerRequirement,
+    addQuestionSkillMapping,
+    deleteQuestionSkillMapping,
     addQuestionItem, 
     deleteQuestionItem,
     showToast,
@@ -482,6 +488,16 @@ export const AdminDashboardPage: React.FC = () => {
                   <span className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1"><HelpCircle className="w-3 h-3" /> Active Questions</span>
                   <p className="text-2xl font-black text-emerald-400">{adminStats.activeQuestions ?? '—'} Items</p>
                   <p className="text-[10px] text-slate-500">In MySQL questions table</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-slate-900 text-white space-y-1">
+                  <span className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1"><Layers className="w-3 h-3" /> Career Requirements</span>
+                  <p className="text-2xl font-black text-teal-400">{adminStats.careerSkillRequirementCount ?? '—'} Mappings</p>
+                  <p className="text-[10px] text-slate-500">In MySQL requirements table</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-slate-900 text-white space-y-1">
+                  <span className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1"><Sliders className="w-3 h-3" /> Option Skill Mappings</span>
+                  <p className="text-2xl font-black text-purple-400">{adminStats.questionSkillMappingCount ?? '—'} Mappings</p>
+                  <p className="text-[10px] text-slate-500">In MySQL mappings table</p>
                 </div>
                 <div className="p-4 rounded-2xl bg-slate-900 text-white space-y-1">
                   <span className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1"><Users className="w-3 h-3" /> Registered Users</span>

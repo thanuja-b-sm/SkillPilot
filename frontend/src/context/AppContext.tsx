@@ -8,7 +8,8 @@ import {
   CareerMatchResult, 
   SkillGapItem, 
   CareerRoadmap,
-  SystemConfig
+  SystemConfig,
+  SkillMeta
 } from '../types';
 import { 
   INITIAL_CAREERS, 
@@ -81,7 +82,7 @@ interface AppContextType {
   enhanceRoadmapSummaryWithAI: () => Promise<void>;
   
   // System Config & Admin CRUD
-  skillsList: typeof INITIAL_SKILLS[number][];
+  skillsList: SkillMeta[];
   systemConfig: SystemConfig;
   updateSystemConfig: (config: Partial<SystemConfig>) => void;
   
@@ -89,6 +90,12 @@ interface AppContextType {
   addCareer: (career: Career) => void;
   updateCareer: (career: Career) => void;
   deleteCareer: (careerId: string) => void;
+  activateCareer: (careerId: string) => Promise<void>;
+  activateSkill: (skillId: string) => Promise<void>;
+  addCareerRequirement: (careerId: string, req: { skillId: string; requiredLevel: number; isEssential?: boolean }) => Promise<void>;
+  deleteCareerRequirement: (reqId: string) => Promise<void>;
+  addQuestionSkillMapping: (req: { optionId: string; skillId: string; weight: number }) => Promise<void>;
+  deleteQuestionSkillMapping: (mappingId: string) => Promise<void>;
   addQuestionItem: (item: QuestionItem) => void;
   deleteQuestionItem: (itemId: string) => void;
   
@@ -106,9 +113,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [token, setTokenState] = useState<string | null>(() => localStorage.getItem('skillpilot_token'));
   
   const [userProfile, setUserProfile] = useState<UserProfile>(EMPTY_USER_PROFILE);
-  const [careers, setCareers] = useState<Career[]>(INITIAL_CAREERS);
-  const [questionnaire, setQuestionnaire] = useState<QuestionItem[]>(INITIAL_QUESTIONNAIRE);
-  const [skillsList, setSkillsList] = useState([...INITIAL_SKILLS]);
+  const [careers, setCareers] = useState<Career[]>([]);
+  const [questionnaire, setQuestionnaire] = useState<QuestionItem[]>([]);
+  const [skillsList, setSkillsList] = useState<SkillMeta[]>([]);
   const [systemConfig, setSystemConfig] = useState<SystemConfig>(DEFAULT_SYSTEM_CONFIG);
   
   const [questionnaireAnswers, setQuestionnaireAnswers] = useState<Record<string, string | string[]>>({});
@@ -308,6 +315,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       showToast('Session expired. Please sign in again.', 'warning');
     }
   }, [fetchBackendCareerMatches, fetchBackendSkillGap, fetchExistingRoadmap]);
+
+  // Fetch career-specific skills and questionnaire when target career changes
+  useEffect(() => {
+    if (selectedTargetCareerId) {
+      fetch(`/api/careers/${selectedTargetCareerId}/skills`)
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data && Array.isArray(data) && data.length > 0) {
+            setSkillsList(data.map((r: any) => ({
+              id: r.skillId,
+              name: r.skillName,
+              category: r.category,
+              requiredLevel: r.requiredLevel,
+              isEssential: r.isEssential
+            })));
+          }
+        })
+        .catch(err => console.warn('Failed to fetch career specific skills:', err));
+
+      fetch(`/api/questionnaire/career/${selectedTargetCareerId}`)
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data && Array.isArray(data) && data.length > 0) {
+            setQuestionnaire(data);
+          }
+        })
+        .catch(err => console.warn('Failed to fetch career specific questionnaire:', err));
+    } else {
+      fetch('/api/skills')
+        .then(res => res.ok ? res.json() : null)
+        .then(data => { if (data && data.length > 0) setSkillsList(data); })
+        .catch(err => console.warn('Backend skills fetch fallback', err));
+
+      fetch('/api/questionnaire')
+        .then(res => res.ok ? res.json() : null)
+        .then(data => { if (data && data.length > 0) setQuestionnaire(data); })
+        .catch(err => console.warn('Backend questionnaire fetch fallback', err));
+    }
+  }, [selectedTargetCareerId]);
 
   // Synchronize master data & authenticated session on startup
   useEffect(() => {
@@ -749,6 +795,128 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('Updated system calculation weights', 'success');
   };
 
+  const activateCareer = async (careerId: string) => {
+    const activeTok = token || localStorage.getItem('skillpilot_token');
+    if (activeTok) {
+      try {
+        const res = await fetch(`/api/admin/careers/${careerId}/activate`, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${activeTok}` }
+        });
+        if (res.ok) {
+          const updated = await res.json();
+          setCareers(prev => prev.map(c => c.id === updated.id ? updated : c));
+          showToast(`Reactivated career: ${updated.title}`, 'success');
+        }
+      } catch (e) {
+        console.error('Error activating career:', e);
+      }
+    }
+  };
+
+  const activateSkill = async (skillId: string) => {
+    const activeTok = token || localStorage.getItem('skillpilot_token');
+    if (activeTok) {
+      try {
+        const res = await fetch(`/api/admin/skills/${skillId}/activate`, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${activeTok}` }
+        });
+        if (res.ok) {
+          const updated = await res.json();
+          setSkillsList(prev => prev.map(s => s.id === updated.id ? updated : s));
+          showToast(`Reactivated skill: ${updated.name}`, 'success');
+        }
+      } catch (e) {
+        console.error('Error activating skill:', e);
+      }
+    }
+  };
+
+  const addCareerRequirement = async (careerId: string, req: { skillId: string; requiredLevel: number; isEssential?: boolean }) => {
+    const activeTok = token || localStorage.getItem('skillpilot_token');
+    if (activeTok) {
+      try {
+        const res = await fetch(`/api/admin/careers/${careerId}/requirements`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${activeTok}`
+          },
+          body: JSON.stringify(req)
+        });
+        if (res.ok) {
+          const updatedCareer = await res.json();
+          setCareers(prev => prev.map(c => c.id === updatedCareer.id ? updatedCareer : c));
+          showToast(`Updated career skill requirements`, 'success');
+        }
+      } catch (e) {
+        console.error('Error adding requirement:', e);
+      }
+    }
+  };
+
+  const deleteCareerRequirement = async (reqId: string) => {
+    const activeTok = token || localStorage.getItem('skillpilot_token');
+    if (activeTok) {
+      try {
+        await fetch(`/api/admin/career-requirements/${reqId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${activeTok}` }
+        });
+        showToast('Removed requirement', 'info');
+      } catch (e) {
+        console.error('Error deleting requirement:', e);
+      }
+    }
+  };
+
+  const addQuestionSkillMapping = async (req: { optionId: string; skillId: string; weight: number }) => {
+    const activeTok = token || localStorage.getItem('skillpilot_token');
+    if (activeTok) {
+      try {
+        const res = await fetch('/api/admin/question-skill-mappings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${activeTok}`
+          },
+          body: JSON.stringify(req)
+        });
+        if (res.ok) {
+          showToast('Added question skill mapping', 'success');
+          fetch('/api/admin/questionnaire', {
+            headers: { 'Authorization': `Bearer ${activeTok}` }
+          })
+          .then(r => r.ok ? r.json() : null)
+          .then(data => { if (data) setQuestionnaire(data); });
+        }
+      } catch (e) {
+        console.error('Error adding question skill mapping:', e);
+      }
+    }
+  };
+
+  const deleteQuestionSkillMapping = async (mappingId: string) => {
+    const activeTok = token || localStorage.getItem('skillpilot_token');
+    if (activeTok) {
+      try {
+        await fetch(`/api/admin/question-skill-mappings/${mappingId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${activeTok}` }
+        });
+        showToast('Removed question skill mapping', 'info');
+        fetch('/api/admin/questionnaire', {
+          headers: { 'Authorization': `Bearer ${activeTok}` }
+        })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data) setQuestionnaire(data); });
+      } catch (e) {
+        console.error('Error deleting question skill mapping:', e);
+      }
+    }
+  };
+
   return (
     <AppContext.Provider value={{
       userRole,
@@ -784,6 +952,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       addCareer,
       updateCareer,
       deleteCareer,
+      activateCareer,
+      activateSkill,
+      addCareerRequirement,
+      deleteCareerRequirement,
+      addQuestionSkillMapping,
+      deleteQuestionSkillMapping,
       addQuestionItem,
       deleteQuestionItem,
       toasts,

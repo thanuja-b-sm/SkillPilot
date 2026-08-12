@@ -37,9 +37,10 @@ public class CareerScoringEngine {
         double questCap = 23.0;
         int minScore = 45;
 
+        SystemConfig config = null;
         if (systemConfigRepository != null) {
             try {
-                SystemConfig config = systemConfigRepository.findFirstByIsActiveTrueOrderByCreatedAtDesc().orElse(null);
+                config = systemConfigRepository.findFirstByIsActiveTrueOrderByCreatedAtDesc().orElse(null);
                 if (config != null) {
                     if (config.getTechnicalWeight() != null) {
                         techScale = config.getTechnicalWeight().doubleValue() * 150.0;
@@ -54,6 +55,11 @@ public class CareerScoringEngine {
             } catch (Exception ignored) {}
         }
 
+        double essentialWeightMultiplier = 2.0;
+        if (config != null && config.getEssentialSkillPenalty() != null) {
+            essentialWeightMultiplier = 1.0 + (config.getEssentialSkillPenalty().doubleValue() * 6.666);
+        }
+
         double totalRequiredWeight = 0.0;
         double earnedScore = 0.0;
         List<String> keyStrengths = new ArrayList<>();
@@ -61,7 +67,7 @@ public class CareerScoringEngine {
 
         if (career.getRequiredSkills() != null) {
             for (CareerSkillRequirement req : career.getRequiredSkills()) {
-                double weight = Boolean.TRUE.equals(req.getIsEssential()) ? 2.0 : 1.0;
+                double weight = Boolean.TRUE.equals(req.getIsEssential()) ? essentialWeightMultiplier : 1.0;
                 int reqLevel = req.getRequiredLevel() != null ? req.getRequiredLevel() : 1;
                 totalRequiredWeight += reqLevel * weight;
 
@@ -122,8 +128,8 @@ public class CareerScoringEngine {
         }
 
         int rawPercentage = (int) Math.round((skillMatchRatio * techScale) + Math.min(questCap, questionnaireBonus));
-        if (rawPercentage < 45) {
-            rawPercentage = 45;
+        if (rawPercentage < minScore) {
+            rawPercentage = minScore;
         }
         if (rawPercentage > 98) {
             rawPercentage = 98;
@@ -157,6 +163,13 @@ public class CareerScoringEngine {
                 keyStrengths,
                 keyGaps
         );
+    }
+
+    public SystemConfig getCurrentSystemConfig() {
+        if (systemConfigRepository != null) {
+            return systemConfigRepository.findFirstByIsActiveTrueOrderByCreatedAtDesc().orElse(null);
+        }
+        return null;
     }
 
     @lombok.Value

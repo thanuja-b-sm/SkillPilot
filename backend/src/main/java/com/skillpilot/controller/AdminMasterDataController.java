@@ -32,8 +32,10 @@ public class AdminMasterDataController {
 
     // --- CAREERS ---
     @GetMapping("/careers")
-    public ResponseEntity<List<CareerResponse>> getAllCareers() {
-        return ResponseEntity.ok(careerService.getAllCareersAdmin());
+    public ResponseEntity<List<CareerResponse>> getAllCareers(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean active) {
+        return ResponseEntity.ok(careerService.getAllCareersAdmin(search, active));
     }
 
     @PostMapping("/careers")
@@ -46,6 +48,11 @@ public class AdminMasterDataController {
         return ResponseEntity.ok(careerService.updateCareer(id, req));
     }
 
+    @PutMapping("/careers/{id}/activate")
+    public ResponseEntity<CareerResponse> activateCareer(@PathVariable String id) {
+        return ResponseEntity.ok(careerService.activateCareer(id));
+    }
+
     @DeleteMapping("/careers/{id}")
     public ResponseEntity<Void> deleteCareer(@PathVariable String id) {
         careerService.deleteCareer(id);
@@ -54,8 +61,10 @@ public class AdminMasterDataController {
 
     // --- SKILLS ---
     @GetMapping("/skills")
-    public ResponseEntity<List<Skill>> getAllSkills() {
-        return ResponseEntity.ok(skillService.getAllSkillsAdmin());
+    public ResponseEntity<List<Skill>> getAllSkills(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean active) {
+        return ResponseEntity.ok(skillService.getAllSkillsAdmin(search, active));
     }
 
     @PostMapping("/skills")
@@ -68,6 +77,11 @@ public class AdminMasterDataController {
         return ResponseEntity.ok(skillService.updateSkill(id, req));
     }
 
+    @PutMapping("/skills/{id}/activate")
+    public ResponseEntity<Skill> activateSkill(@PathVariable String id) {
+        return ResponseEntity.ok(skillService.activateSkill(id));
+    }
+
     @DeleteMapping("/skills/{id}")
     public ResponseEntity<Void> deleteSkill(@PathVariable String id) {
         skillService.deleteSkill(id);
@@ -76,8 +90,10 @@ public class AdminMasterDataController {
 
     // --- QUESTIONNAIRE ---
     @GetMapping("/questionnaire")
-    public ResponseEntity<List<QuestionResponse>> getAllQuestions() {
-        return ResponseEntity.ok(questionnaireService.getAllQuestionsAdmin());
+    public ResponseEntity<List<QuestionResponse>> getAllQuestions(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean active) {
+        return ResponseEntity.ok(questionnaireService.getAllQuestionsAdmin(search, active));
     }
 
     @PostMapping("/questionnaire")
@@ -114,6 +130,26 @@ public class AdminMasterDataController {
     @DeleteMapping("/question-options/{id}")
     public ResponseEntity<Void> deleteOption(@PathVariable String id) {
         questionnaireService.deleteOption(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // --- QUESTION-SKILL MAPPINGS ---
+    @PostMapping("/question-skill-mappings")
+    public ResponseEntity<QuestionOptionResponse.SkillMappingResponse> createQuestionSkillMapping(
+            @Valid @RequestBody com.skillpilot.dto.request.QuestionSkillMappingRequest req) {
+        return new ResponseEntity<>(questionnaireService.createQuestionSkillMapping(req), HttpStatus.CREATED);
+    }
+
+    @PutMapping("/question-skill-mappings/{id}")
+    public ResponseEntity<QuestionOptionResponse.SkillMappingResponse> updateQuestionSkillMapping(
+            @PathVariable String id,
+            @Valid @RequestBody com.skillpilot.dto.request.QuestionSkillMappingRequest req) {
+        return ResponseEntity.ok(questionnaireService.updateQuestionSkillMapping(id, req));
+    }
+
+    @DeleteMapping("/question-skill-mappings/{id}")
+    public ResponseEntity<Void> deleteQuestionSkillMapping(@PathVariable String id) {
+        questionnaireService.deleteQuestionSkillMapping(id);
         return ResponseEntity.noContent().build();
     }
 
