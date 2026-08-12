@@ -33,6 +33,8 @@ public class UserProfileMapper {
 
         int completion = completionCalculatorService.calculateCompletionPercentage(user);
 
+        String roleValue = (user.getRole() != null) ? user.getRole().getValue() : "STUDENT";
+
         return UserProfileResponse.builder()
                 .id(user.getId())
                 .name(user.getName())
@@ -44,6 +46,8 @@ public class UserProfileMapper {
                 .targetFocus(user.getTargetFocus() != null ? user.getTargetFocus() : "")
                 .bio(user.getBio() != null ? user.getBio() : "")
                 .completionPercentage(completion)
+                .userRole(roleValue)
+                .role(roleValue)
                 .skills(skillResponses)
                 .build();
     }

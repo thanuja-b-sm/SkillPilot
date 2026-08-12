@@ -20,5 +20,7 @@ public class UserProfileResponse {
     private String targetFocus;
     private String bio;
     private Integer completionPercentage;
+    private String userRole;
+    private String role;
     private List<UserSkillResponse> skills;
 }
