@@ -507,7 +507,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [ensureMasterDataLoaded, fetchAuthenticatedUserData, navigateTo]);
 
   // Clean login helper method
-  const loginWithAuthData = useCallback((authToken: string, profile: UserProfile, roleStr?: string) => {
+  const loginWithAuthData = useCallback((authToken: string, profile: UserProfile, roleStr?: string, targetPage?: PageId) => {
     setToken(authToken);
     if (profile) {
       setUserProfile(profile);
@@ -517,7 +517,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const role: UserRole = isAdmin ? 'admin' : 'student';
     setUserRoleState(role);
 
-    navigateTo(role === 'admin' ? 'admin' : 'results');
+    const destination = targetPage || (role === 'admin' ? 'admin' : 'results');
+    navigateTo(destination);
     ensureMasterDataLoaded();
     fetchAuthenticatedUserData(authToken);
   }, [setToken, navigateTo, ensureMasterDataLoaded, fetchAuthenticatedUserData]);
