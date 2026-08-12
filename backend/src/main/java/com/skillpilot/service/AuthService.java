@@ -132,12 +132,26 @@ public class AuthService {
     }
 
     private static final java.util.concurrent.ConcurrentHashMap<String, ResetCodeDetails> RESET_CODE_MAP = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.security.SecureRandom SECURE_RANDOM = new java.security.SecureRandom();
+    private static final int MAX_RESET_ATTEMPTS = 5;
 
     @lombok.AllArgsConstructor
     @lombok.Getter
     private static class ResetCodeDetails {
         private final String code;
         private final java.time.LocalDateTime expiresAt;
+        private final java.util.concurrent.atomic.AtomicInteger attemptsCount;
+
+        public ResetCodeDetails(String code, java.time.LocalDateTime expiresAt) {
+            this.code = code;
+            this.expiresAt = expiresAt;
+            this.attemptsCount = new java.util.concurrent.atomic.AtomicInteger(0);
+        }
+    }
+
+    public static String getResetCodeForTesting(String email) {
+        ResetCodeDetails d = RESET_CODE_MAP.get(email.trim().toLowerCase());
+        return d != null ? d.getCode() : null;
     }
 
     @Transactional(readOnly = true)
@@ -147,21 +161,22 @@ public class AuthService {
         }
 
         String email = request.getEmail().trim().toLowerCase();
-        User user = userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new BadRequestException("No registered account found with email address: " + email));
+        java.util.Optional<User> userOpt = userRepository.findByEmailIgnoreCase(email);
 
-        String resetCode = String.format("%06d", new java.util.Random().nextInt(1000000));
-        java.time.LocalDateTime expiresAt = java.time.LocalDateTime.now().plusMinutes(15);
+        if (userOpt.isPresent()) {
+            String resetCode = String.format("%06d", SECURE_RANDOM.nextInt(1000000));
+            java.time.LocalDateTime expiresAt = java.time.LocalDateTime.now().plusMinutes(15);
+            RESET_CODE_MAP.put(email, new ResetCodeDetails(resetCode, expiresAt));
 
-        RESET_CODE_MAP.put(email, new ResetCodeDetails(resetCode, expiresAt));
-
-        if (emailService != null) {
-            emailService.sendPasswordResetEmail(email, resetCode);
+            if (emailService != null) {
+                emailService.sendPasswordResetEmail(email, resetCode);
+            }
         }
 
+        // Generic response — does not reveal whether the email exists
         return com.skillpilot.dto.response.ForgotPasswordResponse.builder()
-                .message("Verification reset code sent to your email inbox")
-                .resetCode(resetCode)
+                .message("If an account with that email address is registered in SkillPilot, a 6-digit verification code has been sent.")
+                .resetCode(null)
                 .build();
     }
 
@@ -174,13 +189,27 @@ public class AuthService {
         String email = request.getEmail().trim().toLowerCase();
         ResetCodeDetails details = RESET_CODE_MAP.get(email);
 
-        if (details == null || !details.getCode().equals(request.getResetCode().trim())) {
-            throw new BadRequestException("Invalid verification reset code");
+        if (details == null) {
+            throw new BadRequestException("Invalid or expired verification reset code. Please request a new code.");
         }
 
         if (details.getExpiresAt().isBefore(java.time.LocalDateTime.now())) {
             RESET_CODE_MAP.remove(email);
-            throw new BadRequestException("Verification reset code has expired. Please request a new code");
+            throw new BadRequestException("Verification reset code has expired. Please request a new code.");
+        }
+
+        if (details.getAttemptsCount().get() >= MAX_RESET_ATTEMPTS) {
+            RESET_CODE_MAP.remove(email);
+            throw new BadRequestException("Maximum verification attempts exceeded. Please request a new verification code.");
+        }
+
+        if (!details.getCode().equals(request.getResetCode().trim())) {
+            int currentAttempts = details.getAttemptsCount().incrementAndGet();
+            if (currentAttempts >= MAX_RESET_ATTEMPTS) {
+                RESET_CODE_MAP.remove(email);
+                throw new BadRequestException("Maximum verification attempts exceeded. Please request a new verification code.");
+            }
+            throw new BadRequestException("Invalid verification reset code.");
         }
 
         if (!PASSWORD_PATTERN.matcher(request.getNewPassword()).matches()) {

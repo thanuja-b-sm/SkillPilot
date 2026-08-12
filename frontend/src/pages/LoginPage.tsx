@@ -81,11 +81,11 @@ export const LoginPage: React.FC = () => {
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        setForgotError(data?.message || 'No registered account found with this email address.');
+        setForgotError(data?.message || 'Unable to process password recovery request');
         return;
       }
       setForgotStep(2);
-      setForgotSuccess(`Verification reset code sent to ${forgotEmail}! Please check your email inbox.`);
+      setForgotSuccess(data?.message || `If an account with that email address is registered, a 6-digit verification code has been sent to your inbox.`);
     } catch {
       setForgotError('Failed to connect to authentication server');
     } finally {
