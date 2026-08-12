@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 export const ProfilePage: React.FC = () => {
-  const { userProfile, setUserProfile, updateUserSkill, skillsList, navigateTo, showToast } = useApp();
+  const { userProfile, setUserProfile, updateUserSkill, skillsList, selectedTargetCareer, navigateTo, showToast } = useApp();
 
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [isEditingInfo, setIsEditingInfo] = useState(false);
@@ -228,6 +228,12 @@ export const ProfilePage: React.FC = () => {
             <p className="text-xs text-slate-500 mt-0.5">
               Adjust sliders to rate your baseline level (0 = None, 5 = Expert). Changes dynamically update career matches.
             </p>
+            {selectedTargetCareer && (
+              <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-800 text-[11px] font-bold rounded-lg border border-blue-200">
+                <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                <span>Showing skills relevant to target: <strong>{selectedTargetCareer.title}</strong></span>
+              </div>
+            )}
           </div>
 
           <button

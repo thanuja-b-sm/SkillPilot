@@ -47,10 +47,6 @@ export const AdminDashboardPage: React.FC = () => {
     token
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'careers' | 'skills' | 'questionnaire' | 'weights' | 'overview'>('careers');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [adminStats, setAdminStats] = useState<Record<string, any> | null>(null);
-
   if (userRole !== 'admin') {
     return (
       <div className="max-w-md mx-auto my-16 p-8 bg-white rounded-3xl border border-slate-200 shadow-xl text-center space-y-6">
@@ -74,6 +70,12 @@ export const AdminDashboardPage: React.FC = () => {
       </div>
     );
   }
+  const [activeTab, setActiveTab] = useState<'careers' | 'skills' | 'questionnaire' | 'weights' | 'overview'>('careers');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [skillSearchTerm, setSkillSearchTerm] = useState('');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [adminStats, setAdminStats] = useState<Record<string, any> | null>(null);
+  const [weightsForm, setWeightsForm] = useState({ ...systemConfig });
   const [isLoadingStats, setIsLoadingStats] = useState(false);
 
   useEffect(() => {
@@ -107,13 +109,20 @@ export const AdminDashboardPage: React.FC = () => {
     requiredSkills: []
   });
 
-  // Weights Form State
-  const [weightsForm, setWeightsForm] = useState({ ...systemConfig });
+  const filteredCareers = careers.filter(c => {
+    const matchesSearch = c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.category.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesActive = activeFilter === 'all' ? true : activeFilter === 'active' ? c.isActive !== false : c.isActive === false;
+    return matchesSearch && matchesActive;
+  });
 
-  const filteredCareers = careers.filter(c => 
-    c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredSkills = skillsList.filter(s => {
+    const matchesSearch = s.name.toLowerCase().includes(skillSearchTerm.toLowerCase()) ||
+      s.category.toLowerCase().includes(skillSearchTerm.toLowerCase()) ||
+      s.id.toLowerCase().includes(skillSearchTerm.toLowerCase());
+    const matchesActive = activeFilter === 'all' ? true : activeFilter === 'active' ? (s as any).isActive !== false : (s as any).isActive === false;
+    return matchesSearch && matchesActive;
+  });
 
   const handleOpenNewCareer = () => {
     setEditingCareer(null);
@@ -303,20 +312,31 @@ export const AdminDashboardPage: React.FC = () => {
                         {career.requiredSkills.length} defined skills
                       </td>
                       <td className="p-3.5 text-right space-x-2">
-                        <button
-                          onClick={() => handleOpenEditCareer(career)}
-                          className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Edit Profile"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => deleteCareer(career.id)}
-                          className="p-1.5 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Delete Record"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {career.isActive === false ? (
+                          <button
+                            onClick={() => activateCareer(career.id)}
+                            className="px-2.5 py-1 text-[10px] bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg transition-colors"
+                          >
+                            Reactivate
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleOpenEditCareer(career)}
+                              className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Edit Profile"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => deleteCareer(career.id)}
+                              className="p-1.5 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Deactivate Profile"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -329,7 +349,7 @@ export const AdminDashboardPage: React.FC = () => {
         {/* Skills Master List Tab */}
         {activeTab === 'skills' && (
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-md space-y-6">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
               <div>
                 <h2 className="text-lg font-bold text-slate-950 flex items-center gap-2">
                   <Sliders className="w-5 h-5 text-blue-600" /> Skills Master Dictionary
@@ -338,18 +358,45 @@ export const AdminDashboardPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Skill Search & Filter */}
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+              <input
+                type="text"
+                value={skillSearchTerm}
+                onChange={e => setSkillSearchTerm(e.target.value)}
+                placeholder="Search skills by name, category, or ID..."
+                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {skillsList.map(skill => (
-                <div key={skill.id} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-bold text-slate-950">{skill.name}</h4>
-                    <span className="text-[9px] bg-blue-100 text-blue-800 font-bold px-1.5 py-0.5 rounded">
-                      {skill.id}
-                    </span>
+              {filteredSkills.map(skill => {
+                const isActive = (skill as any).isActive !== false;
+                return (
+                  <div key={skill.id} className={`p-3.5 rounded-2xl border space-y-1.5 transition-colors ${
+                    isActive ? 'bg-slate-50 border-slate-200/80' : 'bg-amber-50/50 border-amber-200/80'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-bold text-slate-950">{skill.name}</h4>
+                      <span className="text-[9px] bg-blue-100 text-blue-800 font-bold px-1.5 py-0.5 rounded">
+                        {skill.id}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] text-slate-500 font-medium">{skill.category}</p>
+                      {!isActive && (
+                        <button
+                          onClick={() => activateSkill(skill.id)}
+                          className="text-[9px] bg-amber-600 hover:bg-amber-700 text-white font-bold px-2 py-0.5 rounded transition-colors"
+                        >
+                          Reactivate
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-[10px] text-slate-500 font-medium">{skill.category}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
