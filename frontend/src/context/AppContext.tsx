@@ -44,7 +44,8 @@ interface AppContextType {
   userRole: UserRole;
   setUserRole: (role: UserRole) => void;
   activePage: PageId;
-  navigateTo: (page: PageId) => void;
+  navigateTo: (page: PageId, options?: { replace?: boolean }) => void;
+  isLoadingAuth: boolean;
   
   // Auth
   token: string | null;
@@ -117,10 +118,31 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+const getPathForPage = (page: PageId): string => {
+  if (page === 'landing') return '/';
+  return `/${page}`;
+};
+
+const getPageFromPath = (path: string): PageId => {
+  const clean = path.trim().toLowerCase().replace(/\/$/, '');
+  if (clean === '' || clean === '/landing' || clean === '/') return 'landing';
+  if (clean === '/register') return 'register';
+  if (clean === '/login') return 'login';
+  if (clean === '/profile') return 'profile';
+  if (clean === '/questionnaire') return 'questionnaire';
+  if (clean === '/results') return 'results';
+  if (clean === '/target-selection') return 'target-selection';
+  if (clean === '/skill-gap') return 'skill-gap';
+  if (clean === '/roadmap') return 'roadmap';
+  if (clean === '/admin') return 'admin';
+  return 'landing';
+};
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [userRole, setUserRoleState] = useState<UserRole>('guest');
-  const [activePage, setActivePage] = useState<PageId>('landing');
+  const [activePage, setActivePageState] = useState<PageId>(() => getPageFromPath(window.location.pathname));
   const [token, setTokenState] = useState<string | null>(() => localStorage.getItem('skillpilot_token'));
+  const [isLoadingAuth, setIsLoadingAuth] = useState<boolean>(() => Boolean(localStorage.getItem('skillpilot_token')));
   
   const [userProfile, setUserProfile] = useState<UserProfile>(EMPTY_USER_PROFILE);
   const [careers, setCareers] = useState<Career[]>([]);
@@ -242,8 +264,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [token]);
 
+  const navigateTo = useCallback((page: PageId, options?: { replace?: boolean }) => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const targetPath = getPathForPage(page);
+    if (options?.replace) {
+      window.history.replaceState({ page }, '', targetPath);
+    } else if (window.location.pathname !== targetPath) {
+      window.history.pushState({ page }, '', targetPath);
+    }
+    setActivePageState(page);
+  }, []);
+
+  // Listen for browser Back/Forward popstate events
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      const pageFromState = event.state?.page as PageId | undefined;
+      const pageFromUrl = getPageFromPath(window.location.pathname);
+      const targetPage = pageFromState || pageFromUrl;
+      setActivePageState(targetPage);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Ensure current route matches initial URL on mount
+  useEffect(() => {
+    const currentPath = window.location.pathname;
+    const currentPage = getPageFromPath(currentPath);
+    window.history.replaceState({ page: currentPage }, '', currentPath);
+  }, []);
+
   // Initialize session from localStorage token on startup
   const initializeSession = useCallback(async (savedToken: string) => {
+    setIsLoadingAuth(true);
     try {
       const res = await fetch('/api/auth/me', {
         headers: { 'Authorization': `Bearer ${savedToken}` }
@@ -254,8 +308,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (profile && profile.id) {
         setUserProfile(profile);
         const isAdmin = profile.role?.toLowerCase() === 'admin' || profile.userRole?.toLowerCase() === 'admin' || profile.roles?.includes('ADMIN');
-        setUserRoleState(isAdmin ? 'admin' : 'student');
+        const role: UserRole = isAdmin ? 'admin' : 'student';
+        setUserRoleState(role);
         setTokenState(savedToken);
+
+        const initialPage = getPageFromPath(window.location.pathname);
+
+        if (role === 'admin') {
+          if (initialPage === 'landing' || initialPage === 'login' || initialPage === 'register') {
+            navigateTo('admin', { replace: true });
+          } else {
+            navigateTo(initialPage, { replace: true });
+          }
+        } else {
+          if (initialPage === 'admin') {
+            showToast('Access denied. Administrator privileges required.', 'error');
+            navigateTo('results', { replace: true });
+          } else if (initialPage === 'login' || initialPage === 'register' || initialPage === 'landing') {
+            navigateTo('results', { replace: true });
+          } else {
+            navigateTo(initialPage, { replace: true });
+          }
+        }
 
         // Migrate guest questionnaire answers if present
         const guestAnswersRaw = localStorage.getItem('skillpilot_guest_answers');
@@ -322,9 +396,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.removeItem('skillpilot_token');
       setTokenState(null);
       setUserRoleState('guest');
+      const initialPage = getPageFromPath(window.location.pathname);
+      if (['admin', 'profile', 'skill-gap', 'roadmap', 'target-selection'].includes(initialPage)) {
+        navigateTo('login', { replace: true });
+      }
       showToast('Session expired. Please sign in again.', 'warning');
+    } finally {
+      setIsLoadingAuth(false);
     }
-  }, [fetchBackendCareerMatches, fetchBackendSkillGap, fetchExistingRoadmap]);
+  }, [fetchBackendCareerMatches, fetchBackendSkillGap, fetchExistingRoadmap, navigateTo]);
 
   // Fetch career-specific skills and questionnaire when target career changes
   useEffect(() => {
@@ -386,18 +466,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const savedToken = localStorage.getItem('skillpilot_token');
     if (savedToken) {
       initializeSession(savedToken);
+    } else {
+      setIsLoadingAuth(false);
     }
-  }, []);
+  }, [initializeSession]);
 
   // Role switching & logout logic
   const setUserRole = (role: UserRole) => {
     setUserRoleState(role);
     if (role === 'admin') {
-      setActivePage('admin');
+      navigateTo('admin');
       showToast('Switched to Administrator Workspace', 'info');
     } else if (role === 'student') {
       if (activePage === 'admin' || activePage === 'landing') {
-        setActivePage('results');
+        navigateTo('results');
       }
       showToast('Logged in as Student Profile', 'success');
     } else {
@@ -409,14 +491,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setActiveRoadmap(null);
       setQuestionnaireAnswers({});
       setSelectedTargetCareerId('');
-      setActivePage('landing');
+      navigateTo('landing');
       showToast('Logged out of session', 'info');
     }
-  };
-
-  const navigateTo = (page: PageId) => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    setActivePage(page);
   };
 
   // Persist User Skill update to Spring Boot backend
@@ -1110,6 +1187,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setUserRole,
       activePage,
       navigateTo,
+      isLoadingAuth,
       token,
       setToken,
       userProfile,
