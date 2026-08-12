@@ -4,10 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.skillpilot.dto.request.ForgotPasswordRequest;
 import com.skillpilot.dto.request.LoginRequest;
 import com.skillpilot.dto.request.ResetPasswordRequest;
-import com.skillpilot.dto.response.ForgotPasswordResponse;
 import com.skillpilot.entity.User;
 import com.skillpilot.entity.UserRole;
 import com.skillpilot.repository.UserRepository;
+import com.skillpilot.service.AuthService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,7 +18,6 @@ import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.UUID;
 
@@ -71,17 +70,14 @@ class ForgotPasswordTest {
                 .email(TEST_EMAIL)
                 .build();
 
-        MvcResult forgotResult = mockMvc.perform(post("/api/auth/forgot-password")
+        mockMvc.perform(post("/api/auth/forgot-password")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(forgotReq)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message", containsString("Verification reset code")))
-                .andExpect(jsonPath("$.resetCode", notNullValue()))
-                .andReturn();
+                .andExpect(jsonPath("$.message", containsString("If an account with that email address is registered")))
+                .andExpect(jsonPath("$.resetCode", nullValue()));
 
-        String responseBody = forgotResult.getResponse().getContentAsString();
-        ForgotPasswordResponse forgotResp = objectMapper.readValue(responseBody, ForgotPasswordResponse.class);
-        String resetCode = forgotResp.getResetCode();
+        String resetCode = AuthService.getResetCodeForTesting(TEST_EMAIL);
         assertNotNull(resetCode);
         assertEquals(6, resetCode.length());
 
@@ -96,7 +92,7 @@ class ForgotPasswordTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(wrongCodeReq)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message", containsString("Invalid verification reset code")));
+                .andExpect(jsonPath("$.message", containsString("Invalid verification")));
 
         // Step 3: Reset password with CORRECT reset code
         ResetPasswordRequest validResetReq = ResetPasswordRequest.builder()
@@ -134,5 +130,20 @@ class ForgotPasswordTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token", notNullValue()))
                 .andExpect(jsonPath("$.userProfile.email", is(TEST_EMAIL)));
+    }
+
+    @Test
+    @DisplayName("Should return generic success message without revealing email non-existence")
+    void testNonExistentEmailReturnsGenericSuccessMessageWithoutLeaking() throws Exception {
+        ForgotPasswordRequest forgotReq = ForgotPasswordRequest.builder()
+                .email("nonexistent.user@unknown-domain.org")
+                .build();
+
+        mockMvc.perform(post("/api/auth/forgot-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(forgotReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message", containsString("If an account with that email address is registered")))
+                .andExpect(jsonPath("$.resetCode", nullValue()));
     }
 }

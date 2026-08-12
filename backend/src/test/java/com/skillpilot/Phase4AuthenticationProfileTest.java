@@ -219,14 +219,24 @@ public class Phase4AuthenticationProfileTest {
     }
 
     @Test
-    @DisplayName("8. Authenticated GET /api/auth/me returns current user profile")
+    @DisplayName("8. Authenticated GET /api/auth/me returns current user profile with role")
     void test8_AuthenticatedAuthMe() throws Exception {
         mockMvc.perform(get("/api/auth/me")
                         .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id", is(testStudentUser.getId())))
                 .andExpect(jsonPath("$.email", is("student.alpha@test.com")))
+                .andExpect(jsonPath("$.userRole", is("student")))
+                .andExpect(jsonPath("$.role", is("student")))
                 .andExpect(jsonPath("$.passwordHash").doesNotExist());
+
+        mockMvc.perform(get("/api/auth/me")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(testAdminUser.getId())))
+                .andExpect(jsonPath("$.email", is("admin.omega@test.com")))
+                .andExpect(jsonPath("$.userRole", is("admin")))
+                .andExpect(jsonPath("$.role", is("admin")));
     }
 
     @Test

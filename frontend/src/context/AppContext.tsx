@@ -44,11 +44,13 @@ interface AppContextType {
   userRole: UserRole;
   setUserRole: (role: UserRole) => void;
   activePage: PageId;
-  navigateTo: (page: PageId) => void;
+  navigateTo: (page: PageId, options?: { replace?: boolean }) => void;
+  isLoadingAuth: boolean;
   
   // Auth
   token: string | null;
   setToken: (t: string | null) => void;
+  loginWithAuthData: (authToken: string, profile: UserProfile, roleStr?: string) => void;
   
   // User Data
   userProfile: UserProfile;
@@ -117,10 +119,31 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+const getPathForPage = (page: PageId): string => {
+  if (page === 'landing') return '/';
+  return `/${page}`;
+};
+
+const getPageFromPath = (path: string): PageId => {
+  const clean = path.trim().toLowerCase().replace(/\/$/, '');
+  if (clean === '' || clean === '/landing' || clean === '/') return 'landing';
+  if (clean === '/register') return 'register';
+  if (clean === '/login') return 'login';
+  if (clean === '/profile') return 'profile';
+  if (clean === '/questionnaire') return 'questionnaire';
+  if (clean === '/results') return 'results';
+  if (clean === '/target-selection') return 'target-selection';
+  if (clean === '/skill-gap') return 'skill-gap';
+  if (clean === '/roadmap') return 'roadmap';
+  if (clean === '/admin') return 'admin';
+  return 'landing';
+};
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [userRole, setUserRoleState] = useState<UserRole>('guest');
-  const [activePage, setActivePage] = useState<PageId>('landing');
+  const [activePage, setActivePageState] = useState<PageId>(() => getPageFromPath(window.location.pathname));
   const [token, setTokenState] = useState<string | null>(() => localStorage.getItem('skillpilot_token'));
+  const [isLoadingAuth, setIsLoadingAuth] = useState<boolean>(() => Boolean(localStorage.getItem('skillpilot_token')));
   
   const [userProfile, setUserProfile] = useState<UserProfile>(EMPTY_USER_PROFILE);
   const [careers, setCareers] = useState<Career[]>([]);
@@ -242,20 +265,210 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [token]);
 
+  const navigateTo = useCallback((page: PageId, options?: { replace?: boolean }) => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const targetPath = getPathForPage(page);
+    if (options?.replace) {
+      window.history.replaceState({ page }, '', targetPath);
+    } else if (window.location.pathname !== targetPath) {
+      window.history.pushState({ page }, '', targetPath);
+    }
+    setActivePageState(page);
+  }, []);
+
+  // Listen for browser Back/Forward popstate events
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      const pageFromState = event.state?.page as PageId | undefined;
+      const pageFromUrl = getPageFromPath(window.location.pathname);
+      const targetPage = pageFromState || pageFromUrl;
+      setActivePageState(targetPage);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Ensure current route matches initial URL on mount
+  useEffect(() => {
+    const currentPath = window.location.pathname;
+    const currentPage = getPageFromPath(currentPath);
+    window.history.replaceState({ page: currentPage }, '', currentPath);
+  }, []);
+
+  // Master data fetcher with retry capability for cold start / startup race
+  const fetchMasterData = useCallback(async () => {
+    let hasLoadedAny = false;
+    try {
+      const [cRes, sRes, qRes] = await Promise.all([
+        fetch('/api/careers').catch(() => null),
+        fetch('/api/skills').catch(() => null),
+        fetch('/api/questionnaire').catch(() => null)
+      ]);
+      if (cRes && cRes.ok) {
+        const data = await cRes.json().catch(() => null);
+        if (Array.isArray(data) && data.length > 0) {
+          setCareers(data);
+          hasLoadedAny = true;
+        }
+      }
+      if (sRes && sRes.ok) {
+        const data = await sRes.json().catch(() => null);
+        if (Array.isArray(data) && data.length > 0) {
+          setSkillsList(data);
+          hasLoadedAny = true;
+        }
+      }
+      if (qRes && qRes.ok) {
+        const data = await qRes.json().catch(() => null);
+        if (Array.isArray(data) && data.length > 0) {
+          setQuestionnaire(data);
+          hasLoadedAny = true;
+        }
+      }
+    } catch (err) {
+      console.warn('Backend master data fetch error:', err);
+    }
+    return hasLoadedAny;
+  }, []);
+
+  const ensureMasterDataLoaded = useCallback(async (maxRetries = 3, delayMs = 600) => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const success = await fetchMasterData();
+      if (success) break;
+      if (attempt < maxRetries) {
+        await new Promise(res => setTimeout(res, delayMs));
+      }
+    }
+  }, [fetchMasterData]);
+
+  // Fetch authenticated user data (matches, gaps, roadmaps, answers, target career)
+  const fetchAuthenticatedUserData = useCallback(async (authToken: string) => {
+    if (!authToken) return;
+    try {
+      const ansRes = await fetch('/api/questionnaire/answers', {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      }).catch(() => null);
+
+      if (ansRes && ansRes.ok) {
+        const userAnswers = await ansRes.json().catch(() => null);
+        if (userAnswers && Array.isArray(userAnswers) && userAnswers.length > 0) {
+          const answersMap: Record<string, string | string[]> = {};
+          userAnswers.forEach((ans: any) => {
+            const optIds = ans.selectedOptionIds || [];
+            answersMap[ans.questionId] = optIds.length === 1 ? optIds[0] : optIds;
+          });
+          setQuestionnaireAnswers(answersMap);
+        }
+      }
+
+      const tcRes = await fetch('/api/user/target-career', {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      }).catch(() => null);
+
+      if (tcRes && tcRes.ok) {
+        const tc = await tcRes.json().catch(() => null);
+        if (tc && tc.careerId) {
+          setSelectedTargetCareerId(tc.careerId);
+        }
+      }
+
+      fetchBackendCareerMatches(authToken);
+      fetchBackendSkillGap(authToken);
+      fetchExistingRoadmap(authToken);
+    } catch (err) {
+      console.warn('Failed to fetch authenticated user data:', err);
+    }
+  }, [fetchBackendCareerMatches, fetchBackendSkillGap, fetchExistingRoadmap]);
+
+  const isInitializingRef = React.useRef(false);
+
   // Initialize session from localStorage token on startup
   const initializeSession = useCallback(async (savedToken: string) => {
-    try {
-      const res = await fetch('/api/auth/me', {
-        headers: { 'Authorization': `Bearer ${savedToken}` }
-      });
-      if (!res.ok) throw new Error('Session expired');
-      
-      const profile = await res.json();
+    if (isInitializingRef.current) return;
+    isInitializingRef.current = true;
+    setIsLoadingAuth(true);
+
+    let response: Response | null = null;
+    let fetchError: any = null;
+
+    // Bounded retry loop for transient backend availability
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        response = await fetch('/api/auth/me', {
+          headers: { 'Authorization': `Bearer ${savedToken}` }
+        });
+        fetchError = null;
+        break;
+      } catch (err) {
+        fetchError = err;
+        if (attempt < 3) {
+          await new Promise(res => setTimeout(res, 600));
+        }
+      }
+    }
+
+    if (fetchError || !response) {
+      console.warn('Backend unavailable during session restoration. Retaining stored session token.');
+      setIsLoadingAuth(false);
+      isInitializingRef.current = false;
+      ensureMasterDataLoaded();
+      return;
+    }
+
+    if (response.status === 401) {
+      localStorage.removeItem('skillpilot_token');
+      setTokenState(null);
+      setUserRoleState('guest');
+      const initialPage = getPageFromPath(window.location.pathname);
+      if (['admin', 'profile', 'skill-gap', 'roadmap', 'target-selection'].includes(initialPage)) {
+        navigateTo('login', { replace: true });
+      }
+      showToast('Session expired. Please sign in again.', 'warning');
+      setIsLoadingAuth(false);
+      isInitializingRef.current = false;
+      ensureMasterDataLoaded();
+      return;
+    }
+
+    if (response.status === 403) {
+      console.warn('403 Forbidden on /api/auth/me');
+      setIsLoadingAuth(false);
+      isInitializingRef.current = false;
+      ensureMasterDataLoaded();
+      return;
+    }
+
+    if (response.ok) {
+      const profile = await response.json().catch(() => null);
       if (profile && profile.id) {
         setUserProfile(profile);
-        const isAdmin = profile.role?.toLowerCase() === 'admin' || profile.userRole?.toLowerCase() === 'admin' || profile.roles?.includes('ADMIN');
-        setUserRoleState(isAdmin ? 'admin' : 'student');
+
+        const roleStr = (profile.userRole || profile.role || '').toLowerCase();
+        const isAdmin = roleStr === 'admin' || profile.roles?.includes('ADMIN');
+        const role: UserRole = isAdmin ? 'admin' : 'student';
+
+        setUserRoleState(role);
         setTokenState(savedToken);
+
+        const initialPage = getPageFromPath(window.location.pathname);
+
+        if (role === 'admin') {
+          if (initialPage === 'landing' || initialPage === 'login' || initialPage === 'register') {
+            navigateTo('admin', { replace: true });
+          } else {
+            navigateTo(initialPage, { replace: true });
+          }
+        } else {
+          if (initialPage === 'admin') {
+            showToast('Access denied. Administrator privileges required.', 'error');
+            navigateTo('results', { replace: true });
+          } else if (initialPage === 'login' || initialPage === 'register' || initialPage === 'landing') {
+            navigateTo('results', { replace: true });
+          } else {
+            navigateTo(initialPage, { replace: true });
+          }
+        }
 
         // Migrate guest questionnaire answers if present
         const guestAnswersRaw = localStorage.getItem('skillpilot_guest_answers');
@@ -284,47 +497,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
         }
 
-        // Fetch questionnaire answers from backend
-        const ansRes = await fetch('/api/questionnaire/answers', {
-          headers: { 'Authorization': `Bearer ${savedToken}` }
-        });
-        if (ansRes.ok) {
-          const userAnswers = await ansRes.json();
-          if (userAnswers && userAnswers.length > 0) {
-            const answersMap: Record<string, string | string[]> = {};
-            userAnswers.forEach((ans: any) => {
-              const optIds = ans.selectedOptionIds || [];
-              answersMap[ans.questionId] = optIds.length === 1 ? optIds[0] : optIds;
-            });
-            setQuestionnaireAnswers(answersMap);
-          }
-        }
-
-        // Fetch user's saved target career from backend
-        const tcRes = await fetch('/api/user/target-career', {
-          headers: { 'Authorization': `Bearer ${savedToken}` }
-        });
-        if (tcRes.ok) {
-          const tc = await tcRes.json();
-          if (tc && tc.careerId) {
-            setSelectedTargetCareerId(tc.careerId);
-          }
-        }
-
-        // Fetch authoritative backend career matches
-        fetchBackendCareerMatches(savedToken);
-        // Fetch skill gap
-        fetchBackendSkillGap(savedToken);
-        // Try to load existing roadmap
-        fetchExistingRoadmap(savedToken);
+        fetchAuthenticatedUserData(savedToken);
       }
-    } catch {
-      localStorage.removeItem('skillpilot_token');
-      setTokenState(null);
-      setUserRoleState('guest');
-      showToast('Session expired. Please sign in again.', 'warning');
     }
-  }, [fetchBackendCareerMatches, fetchBackendSkillGap, fetchExistingRoadmap]);
+
+    setIsLoadingAuth(false);
+    isInitializingRef.current = false;
+    ensureMasterDataLoaded();
+  }, [ensureMasterDataLoaded, fetchAuthenticatedUserData, navigateTo]);
+
+  // Clean login helper method
+  const loginWithAuthData = useCallback((authToken: string, profile: UserProfile, roleStr?: string) => {
+    setToken(authToken);
+    if (profile) {
+      setUserProfile(profile);
+    }
+    const rStr = (roleStr || profile?.userRole || profile?.role || '').toLowerCase();
+    const isAdmin = rStr === 'admin' || profile?.roles?.includes('ADMIN');
+    const role: UserRole = isAdmin ? 'admin' : 'student';
+    setUserRoleState(role);
+
+    navigateTo(role === 'admin' ? 'admin' : 'results');
+    ensureMasterDataLoaded();
+    fetchAuthenticatedUserData(authToken);
+  }, [setToken, navigateTo, ensureMasterDataLoaded, fetchAuthenticatedUserData]);
 
   // Fetch career-specific skills and questionnaire when target career changes
   useEffect(() => {
@@ -367,37 +563,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Synchronize master data & authenticated session on startup
   useEffect(() => {
-    // Fetch master data from Spring Boot backend
-    fetch('/api/careers')
-      .then(res => res.ok ? res.json() : null)
-      .then(data => { if (data && data.length > 0) setCareers(data); })
-      .catch(err => console.warn('Backend careers fetch fallback', err));
-
-    fetch('/api/skills')
-      .then(res => res.ok ? res.json() : null)
-      .then(data => { if (data && data.length > 0) setSkillsList(data); })
-      .catch(err => console.warn('Backend skills fetch fallback', err));
-
-    fetch('/api/questionnaire')
-      .then(res => res.ok ? res.json() : null)
-      .then(data => { if (data && data.length > 0) setQuestionnaire(data); })
-      .catch(err => console.warn('Backend questionnaire fetch fallback', err));
+    ensureMasterDataLoaded();
 
     const savedToken = localStorage.getItem('skillpilot_token');
     if (savedToken) {
       initializeSession(savedToken);
+    } else {
+      setIsLoadingAuth(false);
     }
-  }, []);
+  }, [ensureMasterDataLoaded, initializeSession]);
 
   // Role switching & logout logic
   const setUserRole = (role: UserRole) => {
     setUserRoleState(role);
     if (role === 'admin') {
-      setActivePage('admin');
+      navigateTo('admin');
       showToast('Switched to Administrator Workspace', 'info');
     } else if (role === 'student') {
       if (activePage === 'admin' || activePage === 'landing') {
-        setActivePage('results');
+        navigateTo('results');
       }
       showToast('Logged in as Student Profile', 'success');
     } else {
@@ -409,14 +593,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setActiveRoadmap(null);
       setQuestionnaireAnswers({});
       setSelectedTargetCareerId('');
-      setActivePage('landing');
+      navigateTo('landing');
       showToast('Logged out of session', 'info');
     }
-  };
-
-  const navigateTo = (page: PageId) => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    setActivePage(page);
   };
 
   // Persist User Skill update to Spring Boot backend
@@ -1110,8 +1289,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setUserRole,
       activePage,
       navigateTo,
+      isLoadingAuth,
       token,
       setToken,
+      loginWithAuthData,
       userProfile,
       setUserProfile,
       updateUserSkill,

@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import { Compass, Mail, Lock, ArrowRight, Info, X, CheckCircle2, KeyRound, AlertCircle, Sparkles } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
-  const { setUserRole, navigateTo, showToast, setUserProfile, setToken } = useApp();
+  const { loginWithAuthData, navigateTo, showToast } = useApp();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -38,14 +38,8 @@ export const LoginPage: React.FC = () => {
         return;
       }
       const data = await res.json();
-      setToken(data.token);
-      if (data.userProfile) {
-        setUserProfile(data.userProfile);
-      }
-      const isAdmin = data.userRole?.toLowerCase() === 'admin' || data.userProfile?.roles?.includes('ADMIN') || data.userProfile?.role?.toLowerCase() === 'admin';
-      const role = isAdmin ? 'admin' : 'student';
-      setUserRole(role);
-      navigateTo(role === 'admin' ? 'admin' : 'results');
+      const roleStr = data.userRole || data.userProfile?.userRole || data.userProfile?.role;
+      loginWithAuthData(data.token, data.userProfile, roleStr);
       showToast(`Welcome back, ${data.userProfile?.name || 'User'}!`, 'success');
     } catch (err) {
       showToast('Unable to authenticate with backend server', 'error');
@@ -81,11 +75,11 @@ export const LoginPage: React.FC = () => {
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        setForgotError(data?.message || 'No registered account found with this email address.');
+        setForgotError(data?.message || 'Unable to process password recovery request');
         return;
       }
       setForgotStep(2);
-      setForgotSuccess(`Verification reset code sent to ${forgotEmail}! Please check your email inbox.`);
+      setForgotSuccess(data?.message || `If an account with that email address is registered, a 6-digit verification code has been sent to your inbox.`);
     } catch {
       setForgotError('Failed to connect to authentication server');
     } finally {

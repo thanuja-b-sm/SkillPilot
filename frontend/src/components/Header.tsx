@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 
 export const Header: React.FC = () => {
-  const { userRole, setUserRole, activePage, navigateTo, userProfile } = useApp();
+  const { userRole, setUserRole, activePage, navigateTo, userProfile, isLoadingAuth } = useApp();
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
@@ -27,7 +27,7 @@ export const Header: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         {/* Brand Logo */}
         <div 
-          onClick={() => navigateTo(userRole === 'admin' ? 'admin' : 'landing')}
+          onClick={() => { if (!isLoadingAuth) navigateTo(userRole === 'admin' ? 'admin' : 'landing'); }}
           className="flex items-center gap-3 cursor-pointer group shrink-0"
         >
           <div className="w-10 h-10 rounded-xl bg-slate-900 text-blue-400 flex items-center justify-center shadow-md border border-slate-800 group-hover:bg-blue-600 group-hover:text-white transition-colors">
@@ -44,7 +44,11 @@ export const Header: React.FC = () => {
 
         {/* Navigation Bar Links */}
         <nav className="hidden lg:flex items-center gap-1 text-sm font-medium">
-          {userRole === 'guest' && (
+          {isLoadingAuth ? (
+            <div className="flex items-center gap-2 text-xs text-slate-400 animate-pulse">
+              <span>Syncing session...</span>
+            </div>
+          ) : userRole === 'guest' ? (
             <>
               <button
                 onClick={() => navigateTo('landing')}
@@ -90,9 +94,7 @@ export const Header: React.FC = () => {
                 <Lock className="w-3 h-3 text-amber-500 ml-0.5" />
               </button>
             </>
-          )}
-
-          {(userRole === 'student' || (userRole === 'admin' && activePage !== 'admin')) && (
+          ) : (userRole === 'student' || (userRole === 'admin' && activePage !== 'admin')) ? (
             <div className="flex items-center bg-slate-100/80 p-1 rounded-xl border border-slate-200 text-xs">
               <button
                 onClick={() => navigateTo('profile')}
@@ -158,9 +160,7 @@ export const Header: React.FC = () => {
                 <Map className="w-3.5 h-3.5" /> Roadmap
               </button>
             </div>
-          )}
-
-          {userRole === 'admin' && activePage === 'admin' && (
+          ) : (
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 font-medium text-xs">
                 <ShieldCheck className="w-4 h-4 text-amber-600" /> Admin Dataset Console
@@ -171,7 +171,11 @@ export const Header: React.FC = () => {
 
         {/* Action Buttons */}
         <div className="flex items-center gap-3">
-          {userRole === 'guest' ? (
+          {isLoadingAuth ? (
+            <div className="px-3.5 py-1.5 bg-slate-100 rounded-xl text-xs text-slate-500 font-medium animate-pulse">
+              Restoring Session...
+            </div>
+          ) : userRole === 'guest' ? (
             <div className="flex items-center gap-2">
               <button
                 onClick={() => navigateTo('login')}
@@ -241,7 +245,7 @@ export const Header: React.FC = () => {
       </div>
 
       {/* Mobile Step Strip for Student View */}
-      {(userRole === 'student' || (userRole === 'admin' && activePage !== 'admin')) && (
+      {!isLoadingAuth && (userRole === 'student' || (userRole === 'admin' && activePage !== 'admin')) && (
         <div className="lg:hidden bg-slate-50 border-t border-slate-200 px-4 py-2 overflow-x-auto flex items-center gap-2 text-xs">
           <button
             onClick={() => navigateTo('profile')}

@@ -41,6 +41,9 @@ export interface UserProfile {
   bio: string;
   skills: UserSkill[];
   completionPercentage: number;
+  userRole?: string;
+  role?: string;
+  roles?: string[];
 }
 
 export interface QuestionOption {

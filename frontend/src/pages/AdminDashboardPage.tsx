@@ -127,6 +127,13 @@ export const AdminDashboardPage: React.FC = () => {
     requiredSkills: []
   });
 
+  // Synchronize admin master data on dashboard mount
+  useEffect(() => {
+    refreshCareers();
+    refreshSkills();
+    refreshQuestionnaire();
+  }, []);
+
   // System Stats & Health fetch effect
   useEffect(() => {
     if (activeTab === 'overview' || activeTab === 'weights') {
@@ -134,8 +141,8 @@ export const AdminDashboardPage: React.FC = () => {
       if (!tok) return;
       setIsLoadingStats(true);
       Promise.all([
-        fetch('/api/admin/stats', { headers: { 'Authorization': `Bearer ${tok}` } }).then(r => r.ok ? r.json() : null),
-        fetch('/api/admin/health-check', { headers: { 'Authorization': `Bearer ${tok}` } }).then(r => r.ok ? r.json() : null)
+        fetch('/api/admin/stats', { headers: { 'Authorization': `Bearer ${tok}` } }).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch('/api/admin/health-check', { headers: { 'Authorization': `Bearer ${tok}` } }).then(r => r.ok ? r.json() : null).catch(() => null)
       ])
       .then(([stats, health]) => {
         if (stats) setAdminStats(stats);
@@ -144,7 +151,7 @@ export const AdminDashboardPage: React.FC = () => {
       .catch(err => console.warn('Failed to fetch admin stats:', err))
       .finally(() => setIsLoadingStats(false));
     }
-  }, [activeTab]);
+  }, [activeTab, token]);
 
   // Load Career Impact & Relevant Questions when detail view opens
   const handleOpenCareerDetail = async (career: Career) => {
