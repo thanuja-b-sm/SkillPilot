@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import { Compass, CheckCircle2, ArrowRight, Lock, Mail, User, BookOpen, Shield } from 'lucide-react';
 
 export const RegistrationPage: React.FC = () => {
-  const { navigateTo, setUserRole, setUserProfile, userProfile, showToast, setToken } = useApp();
+  const { navigateTo, setUserRole, setUserProfile, userProfile, showToast, setToken, loginWithAuthData } = useApp();
 
   const [formData, setFormData] = useState({
     name: userProfile.name || '',
@@ -47,9 +47,7 @@ export const RegistrationPage: React.FC = () => {
       }
 
       const data = await res.json();
-      setToken(data.token);
-      setUserProfile(data.userProfile);
-      setUserRole('student');
+      loginWithAuthData(data.token, data.userProfile, data.userRole || 'student', 'register');
       setIsSuccess(true);
       showToast('Account created successfully!', 'success');
     } catch (err) {
