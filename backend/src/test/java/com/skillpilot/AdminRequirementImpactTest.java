@@ -74,6 +74,9 @@ public class AdminRequirementImpactTest {
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
+    @Autowired
+    private jakarta.persistence.EntityManager entityManager;
+
     private User adminUser;
     private User student1;
     private User student2;
@@ -187,7 +190,9 @@ public class AdminRequirementImpactTest {
                 .requiredLevel(3)
                 .isEssential(true)
                 .build();
-        requirementRepository.save(initReq);
+        requirementRepository.saveAndFlush(initReq);
+        entityManager.flush();
+        entityManager.clear();
     }
 
     @Test
@@ -236,6 +241,9 @@ public class AdminRequirementImpactTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(addTerraformReq)))
                 .andExpect(status().isOk());
+
+        entityManager.flush();
+        entityManager.clear();
 
         // Phase 3: Future Student 2 performs skill gap analysis on the updated career requirements
         SkillGapAnalysisResponse s2GapAfter = skillGapService.getSkillGapForCareer(student2.getId(), cloudCareer.getId());
