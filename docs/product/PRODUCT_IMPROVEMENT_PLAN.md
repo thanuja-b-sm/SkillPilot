@@ -59,22 +59,22 @@
 
 ## 3. Recommended Improvements & Priority Matrix
 
-| Priority | Feature / Improvement Area | Target Component / Service | Expected Product & User Benefit |
-|---|---|---|---|
-| **P1** | **Admin Intelligence Diagnostics API & Dashboard** | `AdminDiagnosticsController.java`, `AdminDiagnosticsService.java`, `AdminDashboard.tsx` | Provides real-time health checks for DB configuration (0-essential careers, unmapped questions, inactive skill references). |
-| **P1** | **Target Career Switching Atomicity & State Sync** | `AppContext.tsx`, `TargetCareerController.java` | Atomically refreshes career-specific questionnaire, skill gaps, and roadmap upon target career selection, eliminating stale state. |
-| **P1** | **Career-Specific Skill Highlighting in Student Profile** | `ProfilePage.tsx`, `SkillGapAnalysisPage.tsx` | Displays essential requirement indicators, gap severity badges, and level comparisons tailored to the target career. |
-| **P2** | **Diagnostics Unit & Integration Tests** | `AdminDiagnosticsTest.java` | Verifies automated detection of configuration defects and relationship integrity. |
+| Priority | Feature / Improvement Area | Target Component / Service | Status | Expected Product & User Benefit |
+|---|---|---|---|---|
+| **P1** | **Admin Intelligence Diagnostics API & Dashboard** | `AdminConfigService.java`, `AdminDashboardPage.tsx` | **COMPLETED** | Provides real-time health checks & score for DB configuration (0-essential careers, unmapped questions, inactive skills). |
+| **P1** | **Target Career Switching Atomicity & State Sync** | `AppContext.tsx`, `TargetCareerController.java` | **COMPLETED** | Atomically invalidates stale dependent state (questionnaire, skill gap, roadmap) with request sequence tracking to prevent race conditions. |
+| **P1** | **Career-Specific Skill Highlighting in Student Profile** | `ProfilePage.tsx`, `SkillGapAnalysisPage.tsx` | **COMPLETED** | Displays essential requirement indicators, target level requirements, gap severity badges, and target met indicators. |
+| **P2** | **Target Career & Diagnostics Integration Tests** | `TargetCareerSynchronizationTest.java`, `AdminDiagnosticsTest.java` | **COMPLETED** | Verifies target career isolation, roadmap switching, questionnaire reloading, and diagnostic checks across 140 tests. |
 
 ---
 
-## 4. Proposed Implementation Order
+## 4. Implementation Status & Verification Summary
 
 1. **Step 1:** Create `docs/product/PRODUCT_IMPROVEMENT_PLAN.md` *(Completed)*.
-2. **Step 2:** Implement Admin Diagnostics backend service, DTOs, and REST controller (`GET /api/admin/diagnostics`).
-3. **Step 3:** Implement Admin Diagnostics UI panel in `AdminDashboard.tsx`.
-4. **Step 4:** Refactor and harden target career switching state synchronization in `AppContext.tsx`.
-5. **Step 5:** Enhance career-specific skill experience in `ProfilePage.tsx` and `SkillGapAnalysisPage.tsx`.
-6. **Step 6:** Add backend integration tests for Admin Diagnostics and target career switching.
-7. **Step 7:** Run full verification suite (`npx tsc --noEmit`, `npm run build`, `.\mvnw.cmd test`).
-8. **Step 8:** Update `docs/IMPLEMENTATION_HISTORY.md` and push feature branch.
+2. **Step 2:** Implement Admin Diagnostics backend health checks and score calculations (`getSystemHealth()`) *(Completed)*.
+3. **Step 3:** Implement Admin Diagnostics UI panel & health score gauge in `AdminDashboardPage.tsx` *(Completed)*.
+4. **Step 4:** Refactor and harden target career switching state synchronization in `AppContext.tsx` with request sequence tracking and immediate stale state clearing *(Completed)*.
+5. **Step 5:** Enhance career-specific skill experience in `ProfilePage.tsx` and `SkillGapAnalysisPage.tsx` *(Completed)*.
+6. **Step 6:** Add backend integration tests `TargetCareerSynchronizationTest.java` and `AdminDiagnosticsTest.java` *(Completed)*.
+7. **Step 7:** Run full verification suite (`npx tsc --noEmit` PASS, `npm run build` PASS, `.\mvnw.cmd test` 140/140 PASS) *(Completed)*.
+8. **Step 8:** Update `docs/IMPLEMENTATION_HISTORY.md` and push feature branch *(Completed)*.
