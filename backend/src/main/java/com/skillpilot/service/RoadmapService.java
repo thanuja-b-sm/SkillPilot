@@ -219,8 +219,22 @@ public class RoadmapService {
     }
 
     private boolean checkIsStale(String userId, Roadmap roadmap) {
+        if (roadmap == null || roadmap.getUpdatedAt() == null) {
+            return false;
+        }
+
+        User user = userRepository.findById(userId).orElse(null);
+        if (user != null && user.getUpdatedAt() != null && user.getUpdatedAt().isAfter(roadmap.getUpdatedAt())) {
+            return true;
+        }
+
+        Optional<UserTargetCareer> tcOpt = userTargetCareerRepository.findByUserId(userId);
+        if (tcOpt.isPresent() && tcOpt.get().getSelectedAt() != null && tcOpt.get().getSelectedAt().isAfter(roadmap.getUpdatedAt())) {
+            return true;
+        }
+
         List<UserSkill> userSkills = userSkillRepository.findByUserId(userId);
-        if (userSkills != null && !userSkills.isEmpty() && roadmap.getUpdatedAt() != null) {
+        if (userSkills != null && !userSkills.isEmpty()) {
             for (UserSkill us : userSkills) {
                 if (us.getUpdatedAt() != null && us.getUpdatedAt().isAfter(roadmap.getUpdatedAt())) {
                     return true;

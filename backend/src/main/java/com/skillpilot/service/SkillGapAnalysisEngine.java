@@ -144,10 +144,11 @@ public class SkillGapAnalysisEngine {
         if (user != null) {
             String major = user.getMajorFieldOfStudy() != null ? user.getMajorFieldOfStudy().toLowerCase() : "";
             String category = career.getCategory() != null ? career.getCategory().toLowerCase() : "";
-            if (!major.isBlank() && (category.contains("software") || category.contains("data") || category.contains("tech")) &&
-                    (major.contains("computer") || major.contains("engineering") || major.contains("data") || major.contains("science"))) {
+            String title = career.getTitle() != null ? career.getTitle().toLowerCase() : "";
+            if (!major.isBlank() && (category.contains("software") || category.contains("data") || category.contains("tech") || category.contains("intelligence") || category.contains("ai") || category.contains("engineering") || title.contains("ai") || title.contains("software") || title.contains("data")) &&
+                    (major.contains("computer") || major.contains("engineering") || major.contains("data") || major.contains("science") || major.contains("tech"))) {
                 educationAlignment = 90;
-            } else if (!major.isBlank() && (category.contains("finance") || category.contains("business")) &&
+            } else if (!major.isBlank() && (category.contains("finance") || category.contains("business") || title.contains("finance") || title.contains("quant")) &&
                     (major.contains("finance") || major.contains("business") || major.contains("economics") || major.contains("accounting"))) {
                 educationAlignment = 90;
             }
