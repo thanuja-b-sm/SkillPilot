@@ -80,7 +80,17 @@
 - **Problem:** Needed comprehensive validation of Algorithm v2.5 against the real 36-career MySQL master dataset across diverse user personas to verify absence of anomalies, mathematical monotonicity, and roadmap consistency.
 - **Solution:** Evaluated 8 controlled personas (Zero-skill, Software-focused, Data/AI-focused, Design-focused, Finance-focused, Generalist, Nearly-perfect, Perfect candidate) against all 36 active careers. Verified domain relevance, skill progression monotonicity ($1 \to 5$), essential skill weighting, questionnaire fairness, $100\%$ score reachability for perfect candidate, $0\%$ floor reachability for zero-skill candidate, roadmap consistency, determinism (100 consecutive runs), and historical snapshot immutability.
 - **Files Changed:** `Phase15AlgorithmV2ValidationTest.java`, `ALGORITHM_V2_VALIDATION.md`, `IMPLEMENTATION_HISTORY.md`.
-- **Verification:** `Phase15AlgorithmV2ValidationTest.java` (9 test cases) passed; full backend test suite passed (144/144 tests); frontend `npx tsc --noEmit` and `npm run build` passed.
+### Milestone 13: User Intelligence, Skill Gap & Roadmap Overhaul
+- **Problem:** User profile lacked depth (education level, major, experience years, employment status, learning pace, availability); skill gap engine evaluated skills in isolation without experience buffers; roadmap generation lacked 3-month option and server-side milestone progress tracking.
+- **Solution:** 
+  1. *Profile & Database Migration V8:* Added 20 user intelligence fields and milestone tracking columns via `V8__expand_user_profile_and_roadmap_tracking.sql`. Updated `User.java`, `ProfileUpdateRequest.java`, `UserProfileResponse.java`, `UserProfileMapper.java`, and `CompletionCalculatorService.java`.
+  2. *Multi-Dimensional Readiness & Experience Buffers:* Upgraded `SkillGapAnalysisEngine.java` to compute Skill Readiness %, Experience Alignment %, Education Alignment %, and Overall Readiness %. Classified gaps as `CRITICAL`, `IMPORTANT`, `MINOR`, `EXPERIENCE_SUPPORTED`, or `SATISFIED`.
+  3. *Duration & Progress-Aware Roadmap System:* Extended `RoadmapGenerationEngine.java` and `RoadmapService.java` with 3-month (Rapid Intensive), 6-month (Standard Acceleration), and 12-month (Comprehensive Mastery) duration strategies. Added `PUT /api/user/roadmaps/{roadmapId}/milestones/{milestoneId}/progress` for persisting milestone status (`not_started`, `in_progress`, `completed`), completion percentage ($0-100\%$), notes, and completion timestamp in MySQL.
+  4. *Regeneration Safety & Stale Warning:* Preserved completed milestone progress across roadmap updates/regenerations. Added automatic stale roadmap detection banner when profile or skills change after creation.
+  5. *UI Overhaul:* Redesigned `ProfilePage.tsx` with multi-section tabs and profile completeness gauge. Redesigned `RoadmapPage.tsx` with duration selection, milestone progress sliders, notes editor, and skill traceability tags.
+  6. *Testing:* Added `Phase16UserIntelligenceAndRoadmapOverhaulTest.java` (6 comprehensive integration tests).
+- **Files Changed:** `V8__expand_user_profile_and_roadmap_tracking.sql`, `User.java`, `RoadmapMilestone.java`, `ProfileUpdateRequest.java`, `UserProfileResponse.java`, `RoadmapMilestoneResponse.java`, `CareerRoadmapResponse.java`, `MilestoneProgressUpdateRequest.java`, `UserProfileService.java`, `UserProfileMapper.java`, `CompletionCalculatorService.java`, `SkillGapItemResponse.java`, `SkillGapAnalysisResponse.java`, `SkillGapAnalysisEngine.java`, `SkillGapService.java`, `RoadmapGenerationEngine.java`, `RoadmapService.java`, `RoadmapController.java`, `types.ts`, `Header.tsx`, `ProfilePage.tsx`, `RoadmapPage.tsx`, `SkillGapAnalysisPage.tsx`, `Phase16UserIntelligenceAndRoadmapOverhaulTest.java`, `USER_INTELLIGENCE_ROADMAP_PLAN.md`, `IMPLEMENTATION_HISTORY.md`.
+- **Verification:** `Phase16UserIntelligenceAndRoadmapOverhaulTest.java` (6 tests) passed; `Phase8RoadmapGenerationTest.java` (8 tests) passed; full backend test suite passed (**165 / 165 passed**); frontend `npx tsc --noEmit` (0 errors) and `npm run build` passed.
 
 ---
 
@@ -90,11 +100,12 @@
 |---|---|---|---|
 | **Frontend Type Check (`npx tsc --noEmit`)** | **0 Errors** | Zero TypeScript compilation errors | **PASS** |
 | **Frontend Production Build (`npm run build`)** | **SUCCESS** | Vite SPA bundle built cleanly | **PASS** |
-| **Backend Test Suite (`.\mvnw.cmd test`)** | **144 / 144 Passed** | 100% JUnit 5 + Spring Boot integration test success | **PASS** |
-| **Master Dataset Active Inventory** | **36 Careers, 152 Skills, 177 Reqs** | Realistic relational dataset populated via Flyway V6 & V7 | **PASS** |
-| **Algorithm Improvements v2.5** | **ANOM-01, 02, 03 Resolved** | True 0-100% scoring, normalized questionnaire | **PASS** |
-| **Algorithm V2 Validation** | **8 Personas Validated** | Verified domain relevance, monotonicity & determinism | **PASS** |
-| **Tracked Secrets / `.env` Audit** | **0 Exposure** | Zero API keys, tokens, or credentials tracked | **PASS** |
-| **Git Working Tree Status** | **CLEAN** | All algorithm fixes, tests & audit reports logged | **PASS** |
+| **Backend Test Suite (`.\mvnw.cmd test`)** | **165 / 165 Passed** | 100% JUnit 5 + Spring Boot integration test success | **PASS** |
+| **Master Dataset Active Inventory** | **36 Careers, 92 Active Skills, 177 Reqs** | Realistic relational dataset populated via Flyway V6 & V7 & V8 | **PASS** |
+| **User Intelligence & Profile Completeness** | **Expanded Profile & Flyway V8** | 20 profile intelligence fields + weighted completeness meter | **PASS** |
+| **Experience-Aware Skill Gap Engine** | **Multi-Dimensional Readiness** | Skill, Experience & Education alignment + Experience buffers | **PASS** |
+| **Roadmap System & Persistence** | **3, 6, 12 Month Strategies** | MySQL milestone status, progress %, notes, & regeneration safety | **PASS** |
+| **Git Branch Status** | **feature/user-intelligence-roadmap-overhaul** | Clean working tree, unmerged into main | **PASS** |
+
 
 
