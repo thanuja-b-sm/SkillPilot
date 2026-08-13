@@ -13,6 +13,7 @@ import java.util.List;
 @AllArgsConstructor
 public class SystemHealthResponse {
     private String status; // HEALTHY, WARNING, ERROR
+    private int healthScore; // 0 to 100 percentage
     private int activeCareersCount;
     private int activeSkillsCount;
     private int totalRequirementsCount;

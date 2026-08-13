@@ -131,3 +131,15 @@ export interface SystemConfig {
   essentialSkillPenalty: number;
   minimumMatchThreshold: number;
 }
+
+export interface SystemHealthResponse {
+  status: 'HEALTHY' | 'WARNING' | 'ERROR';
+  healthScore: number;
+  activeCareersCount: number;
+  activeSkillsCount: number;
+  totalRequirementsCount: number;
+  totalQuestionnaireMappingsCount: number;
+  totalQuestionsCount: number;
+  warnings: string[];
+  errors: string[];
+}

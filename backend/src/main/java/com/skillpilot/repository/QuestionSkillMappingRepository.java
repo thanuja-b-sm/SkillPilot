@@ -9,6 +9,7 @@ import java.util.List;
 @Repository
 public interface QuestionSkillMappingRepository extends JpaRepository<QuestionSkillMapping, String> {
     List<QuestionSkillMapping> findByOptionId(String optionId);
+    List<QuestionSkillMapping> findBySkillId(String skillId);
     java.util.Optional<QuestionSkillMapping> findByOptionIdAndSkillId(String optionId, String skillId);
     long countBySkillId(String skillId);
 }

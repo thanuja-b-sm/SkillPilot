@@ -224,6 +224,17 @@ public class Phase7TargetCareerSkillGapTest {
     }
 
     private String obtainJwtToken(String email, String password) throws Exception {
+        Map<String, Object> registerReq = Map.of(
+                "name", "Alex Rivera",
+                "email", email,
+                "password", password,
+                "education", "Computer Science",
+                "experienceYears", 2
+        );
+        mockMvc.perform(post("/api/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(registerReq)));
+
         Map<String, String> loginReq = Map.of("email", email, "password", password);
         MvcResult result = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
