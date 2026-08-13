@@ -60,6 +60,13 @@
   - **Career Switching & Persistence (Scenarios 14-21):** Verified atomic invalidation of Career A state upon switching to Career B ("Cloud Solutions Architect"), hard browser refresh retention, route/state consistency across Back/Forward navigation, session restoration across logout/re-login, rapid career switching race-condition resistance, and admin configuration updates. PASS.
 - **Verification Summary:** `TargetCareerSynchronizationTest.java` passed cleanly; frontend `npx tsc --noEmit` (0 errors), `npm run build` (0 errors), and full backend `.\mvnw.cmd test` suite (139/139 passed).
 
+### Milestone 8: Real Database Master Dataset Expansion & Intelligence Stress Test
+- **Problem:** Comprehensive testing of SkillPilot's deterministic career intelligence required a large, realistic, internally consistent master dataset in the actual MySQL database without relying on frontend mock arrays.
+- **Root Cause:** Baseline dataset had 12 careers and 29 skills; expanded engine stress testing required 30+ active careers across diverse domains (IT, Finance, Healthcare, Engineering, Marketing, HR).
+- **Solution:** Authored Flyway migration `V6__expand_master_dataset.sql` expanding active careers to 36 (across 12 domains), active skills to 152 (across 6 categories), career requirements to 177, questionnaire questions to 18 (with 50 options and 76 skill mappings), and adding roadmap templates for new technical tracks. Authored `Phase12MasterDatasetExpansionTest.java` verifying record inventories, quality rules, 7-domain end-to-end intelligence flows, high-vs-low skill user dynamics, and questionnaire scoring impacts.
+- **Files Changed:** `V6__expand_master_dataset.sql`, `Phase12MasterDatasetExpansionTest.java`, `TargetCareerSynchronizationTest.java`, `application.yml`, `MASTER_DATASET.md`, `IMPLEMENTATION_HISTORY.md`.
+- **Verification:** `Phase12MasterDatasetExpansionTest.java` (4 integration tests) passed cleanly; frontend `npx tsc --noEmit` (0 errors), `npm run build` (0 errors), and full backend `.\mvnw.cmd test` suite (143/143 passed).
+
 ---
 
 ## 📈 Final Pre-Merge Audit & Verification Summary
@@ -67,9 +74,9 @@
 | Suite / Check | Result | Standard | Status |
 |---|---|---|---|
 | **Frontend Type Check (`npx tsc --noEmit`)** | **0 Errors** | Zero TypeScript compilation errors | **PASS** |
-| **Frontend Production Build (`npm run build`)** | **SUCCESS** | Vite SPA + SSR bundle built in 3.04s | **PASS** |
-| **Backend Test Suite (`.\mvnw.cmd test`)** | **139 / 139 Passed** | 100% JUnit 5 + Spring Boot integration test success | **PASS** |
-| **Browser Acceptance Test Matrix (21 Scenarios)** | **21 / 21 Passed** | 100% Student, Career Switching, Race-Condition & Admin scenarios | **PASS** |
+| **Frontend Production Build (`npm run build`)** | **SUCCESS** | Vite SPA bundle built cleanly | **PASS** |
+| **Backend Test Suite (`.\mvnw.cmd test`)** | **143 / 143 Passed** | 100% JUnit 5 + Spring Boot integration test success | **PASS** |
+| **Master Dataset Active Inventory** | **36 Careers, 152 Skills, 177 Reqs** | Realistic relational dataset populated via Flyway V6 | **PASS** |
 | **Tracked Secrets / `.env` Audit** | **0 Exposure** | Zero API keys, tokens, or credentials tracked | **PASS** |
-| **Git Working Tree Status** | **CLEAN** | All synchronization fixes & tests logged | **PASS** |
+| **Git Working Tree Status** | **CLEAN** | All dataset expansion migrations & tests logged | **PASS** |
 
