@@ -33,12 +33,32 @@ export interface UserProfile {
   id: string;
   name: string;
   email: string;
-  title: string;
-  education: string;
-  experienceYears: number;
-  location: string;
-  targetFocus: string;
-  bio: string;
+  title?: string;
+  education?: string;
+  institutionName?: string;
+  degreeLevel?: string;
+  majorFieldOfStudy?: string;
+  graduationYear?: number;
+  educationStatus?: string;
+  experienceYears?: number;
+  employmentStatus?: string;
+  currentJobTitle?: string;
+  currentIndustry?: string;
+  relevantExperienceYears?: number;
+  location?: string;
+  country?: string;
+  dateOfBirth?: string;
+  targetFocus?: string;
+  preferredWorkMode?: string;
+  preferredEmploymentType?: string;
+  careerGoal?: string;
+  weeklyHoursAvailable?: number;
+  preferredLearningPace?: string;
+  preferredRoadmapDuration?: number;
+  bio?: string;
+  certifications?: string;
+  portfolioUrl?: string;
+  careerInterests?: string;
   skills: UserSkill[];
   completionPercentage: number;
   userRole?: string;
@@ -103,26 +123,56 @@ export interface SkillGapItem {
   requiredLevel: number;
   gapAmount: number;
   severity: GapSeverity;
+  classification?: string;
+  experienceSupported?: boolean;
   isEssential: boolean;
   recommendedAction: string;
 }
 
+export interface SkillGapAnalysisResponse {
+  career: Career;
+  readinessScore: number;
+  skillReadiness?: number;
+  experienceAlignment?: number;
+  educationAlignment?: number;
+  overallReadiness?: number;
+  skills: SkillGapItem[];
+  strengths: string[];
+  missingSkills: SkillGapItem[];
+  totalRequiredSkills: number;
+  completedSkills: number;
+}
+
 export interface RoadmapMilestone {
   id: string;
+  phaseOrder?: number;
   monthRange: string; // e.g. "Months 1–2"
   phaseTitle: string; // e.g. "Foundational Mastery"
   focusArea: string;
   goals: string[];
   expectedOutcome: string;
   recommendedCourses: string[];
-  status: 'not_started' | 'in_progress' | 'completed';
+  status: 'not_started' | 'in_progress' | 'completed' | string;
+  completionPercentage?: number;
+  targetSkillId?: string;
+  currentLevel?: number;
+  requiredLevel?: number;
+  gapSeverity?: string;
+  notes?: string;
+  completedAt?: string;
 }
 
 export interface CareerRoadmap {
+  id?: string;
   careerId: string;
   careerTitle: string;
   overallTimeline: string;
+  durationMonths?: number;
   overallReadiness: number;
+  completedMilestonesCount?: number;
+  totalMilestonesCount?: number;
+  isStale?: boolean;
+  status?: string;
   phases: RoadmapMilestone[];
   aiExplanation?: string;
 }
