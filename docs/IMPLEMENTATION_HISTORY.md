@@ -60,12 +60,15 @@
   - **Career Switching & Persistence (Scenarios 14-21):** Verified atomic invalidation of Career A state upon switching to Career B ("Cloud Solutions Architect"), hard browser refresh retention, route/state consistency across Back/Forward navigation, session restoration across logout/re-login, rapid career switching race-condition resistance, and admin configuration updates. PASS.
 - **Verification Summary:** `TargetCareerSynchronizationTest.java` passed cleanly; frontend `npx tsc --noEmit` (0 errors), `npm run build` (0 errors), and full backend `.\mvnw.cmd test` suite (139/139 passed).
 
-### Milestone 8: Real Database Master Dataset Expansion & Intelligence Stress Test
-- **Problem:** Comprehensive testing of SkillPilot's deterministic career intelligence required a large, realistic, internally consistent master dataset in the actual MySQL database without relying on frontend mock arrays.
-- **Root Cause:** Baseline dataset had 12 careers and 29 skills; expanded engine stress testing required 30+ active careers across diverse domains (IT, Finance, Healthcare, Engineering, Marketing, HR).
-- **Solution:** Authored Flyway migration `V6__expand_master_dataset.sql` expanding active careers to 36 (across 12 domains), active skills to 152 (across 6 categories), career requirements to 177, questionnaire questions to 18 (with 50 options and 76 skill mappings), and adding roadmap templates for new technical tracks. Authored `Phase12MasterDatasetExpansionTest.java` verifying record inventories, quality rules, 7-domain end-to-end intelligence flows, high-vs-low skill user dynamics, and questionnaire scoring impacts.
-- **Files Changed:** `V6__expand_master_dataset.sql`, `Phase12MasterDatasetExpansionTest.java`, `TargetCareerSynchronizationTest.java`, `application.yml`, `MASTER_DATASET.md`, `IMPLEMENTATION_HISTORY.md`.
-- **Verification:** `Phase12MasterDatasetExpansionTest.java` (4 integration tests) passed cleanly; frontend `npx tsc --noEmit` (0 errors), `npm run build` (0 errors), and full backend `.\mvnw.cmd test` suite (143/143 passed).
+### Milestone 10: Algorithm Improvement Phase 1
+- **Problem:** Benchmark audit identified 3 scoring anomalies in engine v2.4: ANOM-01 (flatline 45% score for beginners), ANOM-02 (hard 98% upper cap preventing true 100% matches), and ANOM-03 (aggressive questionnaire score over-accumulation).
+- **Solution:** Upgraded `CareerScoringEngine.java` to **v2.5**:
+  1. *ANOM-01 Fix:* Removed artificial `minScore` clamping from raw match score. Scores now reflect true calculated compatibility ($0\% \dots 100\%$). Preserved `minimumMatchThreshold` as `isRecommended` boolean threshold.
+  2. *ANOM-02 Fix:* Removed artificial $98\%$ upper score cap. Perfect candidates satisfying 100% of requirements reach true $100\%$ Match Score.
+  3. *ANOM-03 Fix:* Normalized questionnaire bonus by `relevantQuestionsCount` so score contribution scales proportionally between $0.0$ and `questCap` ($25.0$).
+  4. *UI Transparency:* Updated `CareerResultsPage.tsx` to display both **Match Score** and **Readiness Score** with explanatory badges.
+- **Files Changed:** `CareerScoringEngine.java`, `CareerDiscoveryService.java`, `CareerMatchResponse.java`, `types.ts`, `CareerResultsPage.tsx`, `Phase13AlgorithmIntelligenceImprovementsTest.java`, `ALGORITHM_IMPROVEMENT_PHASE_1.md`, `CAREER_INTELLIGENCE_BENCHMARK.md`, `IMPLEMENTATION_HISTORY.md`.
+- **Verification:** `Phase13AlgorithmIntelligenceImprovementsTest.java` (6 tests) passed; frontend `npx tsc --noEmit` (0 errors), `npm run build` (0 errors), and full backend `.\mvnw.cmd test` suite (149/149 passed).
 
 ---
 
@@ -75,8 +78,9 @@
 |---|---|---|---|
 | **Frontend Type Check (`npx tsc --noEmit`)** | **0 Errors** | Zero TypeScript compilation errors | **PASS** |
 | **Frontend Production Build (`npm run build`)** | **SUCCESS** | Vite SPA bundle built cleanly | **PASS** |
-| **Backend Test Suite (`.\mvnw.cmd test`)** | **143 / 143 Passed** | 100% JUnit 5 + Spring Boot integration test success | **PASS** |
+| **Backend Test Suite (`.\mvnw.cmd test`)** | **149 / 149 Passed** | 100% JUnit 5 + Spring Boot integration test success | **PASS** |
 | **Master Dataset Active Inventory** | **36 Careers, 152 Skills, 177 Reqs** | Realistic relational dataset populated via Flyway V6 | **PASS** |
+| **Algorithm Improvements v2.5** | **ANOM-01, 02, 03 Resolved** | True 0-100% scoring, normalized questionnaire | **PASS** |
 | **Tracked Secrets / `.env` Audit** | **0 Exposure** | Zero API keys, tokens, or credentials tracked | **PASS** |
-| **Git Working Tree Status** | **CLEAN** | All dataset expansion migrations & tests logged | **PASS** |
+| **Git Working Tree Status** | **CLEAN** | All algorithm fixes, tests & audit reports logged | **PASS** |
 

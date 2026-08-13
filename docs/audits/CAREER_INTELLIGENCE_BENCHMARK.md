@@ -176,9 +176,9 @@ User Skills: Empty (0 skills logged)
 
 ---
 
-## 🛡️ 9. What Should NOT Be Changed
+## 🛡️ 9. Resolution Status (Algorithm Improvement Phase 1)
 
-1. **Deterministic Backend Engine Boundaries:** Do NOT move scoring, skill gap, readiness, or roadmap generation to LLMs or React client code.
-2. **MySQL Master Dataset Schema:** Do NOT alter `V1` through `V6` Flyway migrations or return to mock frontend arrays.
-3. **Target Career Synchronization:** Preserve atomic state invalidation (`AppContext.tsx`) upon career switching.
-4. **Snapshot Preservation:** Preserve historical snapshot serialization in `CareerMatchResult.java`.
+> [!NOTE]
+> All 3 primary anomalies (`ANOM-01`, `ANOM-02`, `ANOM-03`) have been fixed in `CareerScoringEngine.java` (v2.5) on branch `feature/algorithm-intelligence-improvements`.
+> For full details, see [ALGORITHM_IMPROVEMENT_PHASE_1.md](file:///c:/Users/USER/Downloads/skillpilot/docs/audits/ALGORITHM_IMPROVEMENT_PHASE_1.md).
+
