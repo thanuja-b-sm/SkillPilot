@@ -40,21 +40,37 @@ public class UserProfileService {
             if (request.getName() != null && !request.getName().isBlank()) {
                 user.setName(request.getName().trim());
             }
-            if (request.getTitle() != null) {
-                user.setTitle(request.getTitle().trim());
-            }
-            if (request.getEducation() != null) {
-                user.setEducation(request.getEducation().trim());
-            }
-            if (request.getLocation() != null) {
-                user.setLocation(request.getLocation().trim());
-            }
-            if (request.getTargetFocus() != null) {
-                user.setTargetFocus(request.getTargetFocus().trim());
-            }
-            if (request.getBio() != null) {
-                user.setBio(request.getBio().trim());
-            }
+            if (request.getTitle() != null) user.setTitle(request.getTitle().trim());
+            if (request.getEducation() != null) user.setEducation(request.getEducation().trim());
+            if (request.getInstitutionName() != null) user.setInstitutionName(request.getInstitutionName().trim());
+            if (request.getDegreeLevel() != null) user.setDegreeLevel(request.getDegreeLevel().trim());
+            if (request.getMajorFieldOfStudy() != null) user.setMajorFieldOfStudy(request.getMajorFieldOfStudy().trim());
+            if (request.getGraduationYear() != null) user.setGraduationYear(request.getGraduationYear());
+            if (request.getEducationStatus() != null) user.setEducationStatus(request.getEducationStatus().trim());
+
+            if (request.getExperienceYears() != null) user.setExperienceYears(request.getExperienceYears());
+            if (request.getEmploymentStatus() != null) user.setEmploymentStatus(request.getEmploymentStatus().trim());
+            if (request.getCurrentJobTitle() != null) user.setCurrentJobTitle(request.getCurrentJobTitle().trim());
+            if (request.getCurrentIndustry() != null) user.setCurrentIndustry(request.getCurrentIndustry().trim());
+            if (request.getRelevantExperienceYears() != null) user.setRelevantExperienceYears(request.getRelevantExperienceYears());
+
+            if (request.getLocation() != null) user.setLocation(request.getLocation().trim());
+            if (request.getCountry() != null) user.setCountry(request.getCountry().trim());
+            if (request.getDateOfBirth() != null) user.setDateOfBirth(request.getDateOfBirth().trim());
+
+            if (request.getTargetFocus() != null) user.setTargetFocus(request.getTargetFocus().trim());
+            if (request.getPreferredWorkMode() != null) user.setPreferredWorkMode(request.getPreferredWorkMode().trim());
+            if (request.getPreferredEmploymentType() != null) user.setPreferredEmploymentType(request.getPreferredEmploymentType().trim());
+            if (request.getCareerGoal() != null) user.setCareerGoal(request.getCareerGoal().trim());
+
+            if (request.getWeeklyHoursAvailable() != null) user.setWeeklyHoursAvailable(request.getWeeklyHoursAvailable());
+            if (request.getPreferredLearningPace() != null) user.setPreferredLearningPace(request.getPreferredLearningPace().trim());
+            if (request.getPreferredRoadmapDuration() != null) user.setPreferredRoadmapDuration(request.getPreferredRoadmapDuration());
+
+            if (request.getBio() != null) user.setBio(request.getBio().trim());
+            if (request.getCertifications() != null) user.setCertifications(request.getCertifications().trim());
+            if (request.getPortfolioUrl() != null) user.setPortfolioUrl(request.getPortfolioUrl().trim());
+            if (request.getCareerInterests() != null) user.setCareerInterests(request.getCareerInterests().trim());
         }
 
         user.setCompletionPercentage(completionCalculatorService.calculateCompletionPercentage(user));
