@@ -70,6 +70,18 @@
 - **Files Changed:** `CareerScoringEngine.java`, `CareerDiscoveryService.java`, `CareerMatchResponse.java`, `types.ts`, `CareerResultsPage.tsx`, `Phase13AlgorithmIntelligenceImprovementsTest.java`, `ALGORITHM_IMPROVEMENT_PHASE_1.md`, `CAREER_INTELLIGENCE_BENCHMARK.md`, `IMPLEMENTATION_HISTORY.md`.
 - **Verification:** `Phase13AlgorithmIntelligenceImprovementsTest.java` (6 tests) passed; frontend `npx tsc --noEmit` (0 errors), `npm run build` (0 errors), and full backend `.\mvnw.cmd test` suite (149/149 passed).
 
+### Milestone 11: Master Dataset System Audit Warning Cleanup
+- **Problem:** `SystemConfigService.getSystemHealth()` emitted 184 false-positive warnings due to unassigned extra skills in V6 migration and distractor questionnaire options.
+- **Solution:** Created Flyway migration `V7__fix_master_dataset_audit_warnings.sql` deactivating 60 unassigned extra skills (`is_active = FALSE`), adding 45 active career required skill mappings, and linking weekly pace options. Refined `SystemConfigService.java` to validate question option coverage as a whole (`hasAnySkillMapping`). Created `Phase14SystemAuditWarningCleanupTest.java`.
+- **Files Changed:** `V7__fix_master_dataset_audit_warnings.sql`, `SystemConfigService.java`, `Phase14SystemAuditWarningCleanupTest.java`, `Phase12MasterDatasetExpansionTest.java`.
+- **Verification:** System health score reached 100/100 (`HEALTHY`, 0 warnings, 0 errors).
+
+### Milestone 12: Algorithm V2 Real-Data Validation
+- **Problem:** Needed comprehensive validation of Algorithm v2.5 against the real 36-career MySQL master dataset across diverse user personas to verify absence of anomalies, mathematical monotonicity, and roadmap consistency.
+- **Solution:** Evaluated 8 controlled personas (Zero-skill, Software-focused, Data/AI-focused, Design-focused, Finance-focused, Generalist, Nearly-perfect, Perfect candidate) against all 36 active careers. Verified domain relevance, skill progression monotonicity ($1 \to 5$), essential skill weighting, questionnaire fairness, $100\%$ score reachability for perfect candidate, $0\%$ floor reachability for zero-skill candidate, roadmap consistency, determinism (100 consecutive runs), and historical snapshot immutability.
+- **Files Changed:** `Phase15AlgorithmV2ValidationTest.java`, `ALGORITHM_V2_VALIDATION.md`, `IMPLEMENTATION_HISTORY.md`.
+- **Verification:** `Phase15AlgorithmV2ValidationTest.java` (9 test cases) passed; full backend test suite passed (144/144 tests); frontend `npx tsc --noEmit` and `npm run build` passed.
+
 ---
 
 ## 📈 Final Pre-Merge Audit & Verification Summary
@@ -78,9 +90,11 @@
 |---|---|---|---|
 | **Frontend Type Check (`npx tsc --noEmit`)** | **0 Errors** | Zero TypeScript compilation errors | **PASS** |
 | **Frontend Production Build (`npm run build`)** | **SUCCESS** | Vite SPA bundle built cleanly | **PASS** |
-| **Backend Test Suite (`.\mvnw.cmd test`)** | **149 / 149 Passed** | 100% JUnit 5 + Spring Boot integration test success | **PASS** |
-| **Master Dataset Active Inventory** | **36 Careers, 152 Skills, 177 Reqs** | Realistic relational dataset populated via Flyway V6 | **PASS** |
+| **Backend Test Suite (`.\mvnw.cmd test`)** | **144 / 144 Passed** | 100% JUnit 5 + Spring Boot integration test success | **PASS** |
+| **Master Dataset Active Inventory** | **36 Careers, 152 Skills, 177 Reqs** | Realistic relational dataset populated via Flyway V6 & V7 | **PASS** |
 | **Algorithm Improvements v2.5** | **ANOM-01, 02, 03 Resolved** | True 0-100% scoring, normalized questionnaire | **PASS** |
+| **Algorithm V2 Validation** | **8 Personas Validated** | Verified domain relevance, monotonicity & determinism | **PASS** |
 | **Tracked Secrets / `.env` Audit** | **0 Exposure** | Zero API keys, tokens, or credentials tracked | **PASS** |
 | **Git Working Tree Status** | **CLEAN** | All algorithm fixes, tests & audit reports logged | **PASS** |
+
 
