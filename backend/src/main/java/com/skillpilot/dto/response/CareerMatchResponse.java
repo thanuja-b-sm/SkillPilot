@@ -15,6 +15,8 @@ public class CareerMatchResponse {
 
     private CareerResponse career;
     private Integer matchScore;
+    private Integer readinessScore;
+    private Boolean isRecommended;
     private List<String> keyStrengths;
     private List<String> keyGaps;
     private String confidenceLevel;

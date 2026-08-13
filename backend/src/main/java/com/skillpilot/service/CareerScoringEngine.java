@@ -89,16 +89,48 @@ public class CareerScoringEngine {
         }
 
         double skillMatchRatio = totalRequiredWeight > 0.0 ? (earnedScore / totalRequiredWeight) : 0.0;
+        int readinessScore = (int) Math.round(skillMatchRatio * 100.0);
+        if (readinessScore < 0) readinessScore = 0;
+        if (readinessScore > 100) readinessScore = 100;
 
+        // ANOM-03: Normalized questionnaire contribution proportional to relevant questions answered
         double questionnaireBonus = 0.0;
-        if (answers != null) {
-            Set<String> careerSkillIds = (career.getRequiredSkills() != null)
-                    ? career.getRequiredSkills().stream()
+        if (answers != null && career.getRequiredSkills() != null && !career.getRequiredSkills().isEmpty()) {
+            Set<String> careerSkillIds = career.getRequiredSkills().stream()
                     .map(r -> r.getSkill() != null ? r.getSkill().getId() : "")
-                    .collect(Collectors.toSet())
-                    : Collections.emptySet();
+                    .filter(id -> !id.isBlank())
+                    .collect(Collectors.toSet());
+
+            int relevantQuestionsCount = 0;
+            double totalEarnedQuestionnaireScore = 0.0;
 
             for (UserQuestionAnswer uqa : answers) {
+                Question question = uqa.getQuestion();
+                if (question == null || question.getOptions() == null || question.getOptions().isEmpty()) {
+                    continue;
+                }
+
+                // A question is relevant if at least one option maps to a skill required by this career
+                boolean isQuestionRelevantToCareer = false;
+                for (QuestionOption opt : question.getOptions()) {
+                    if (opt.getAssociatedSkills() != null) {
+                        for (QuestionSkillMapping mapping : opt.getAssociatedSkills()) {
+                            String mappedSkillId = mapping.getSkill() != null ? mapping.getSkill().getId() : "";
+                            if (careerSkillIds.contains(mappedSkillId)) {
+                                isQuestionRelevantToCareer = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (isQuestionRelevantToCareer) break;
+                }
+
+                if (!isQuestionRelevantToCareer) {
+                    continue;
+                }
+
+                relevantQuestionsCount++;
+
                 if (uqa.getSelectedOptionIds() == null || uqa.getSelectedOptionIds().isBlank()) {
                     continue;
                 }
@@ -110,36 +142,62 @@ public class CareerScoringEngine {
                     selectedOptionIds = Collections.emptyList();
                 }
 
-                Question question = uqa.getQuestion();
-                if (question != null && question.getOptions() != null) {
-                    for (QuestionOption opt : question.getOptions()) {
-                        if (selectedOptionIds.contains(opt.getId()) && opt.getAssociatedSkills() != null) {
-                            for (QuestionSkillMapping mapping : opt.getAssociatedSkills()) {
-                                String mappedSkillId = mapping.getSkill() != null ? mapping.getSkill().getId() : "";
-                                if (careerSkillIds.contains(mappedSkillId)) {
-                                    double w = mapping.getWeight() != null ? mapping.getWeight() : 1.0;
-                                    questionnaireBonus += (w / 5.0) * 4.0;
+                double maxOptionWeightForQuestion = 0.0;
+                for (QuestionOption opt : question.getOptions()) {
+                    if (selectedOptionIds.contains(opt.getId()) && opt.getAssociatedSkills() != null) {
+                        for (QuestionSkillMapping mapping : opt.getAssociatedSkills()) {
+                            String mappedSkillId = mapping.getSkill() != null ? mapping.getSkill().getId() : "";
+                            if (careerSkillIds.contains(mappedSkillId)) {
+                                double w = mapping.getWeight() != null ? mapping.getWeight() : 1.0;
+                                if (w > maxOptionWeightForQuestion) {
+                                    maxOptionWeightForQuestion = w;
                                 }
                             }
                         }
                     }
                 }
+
+                totalEarnedQuestionnaireScore += (maxOptionWeightForQuestion / 5.0);
+            }
+
+            if (relevantQuestionsCount > 0) {
+                techScale = (config != null && config.getTechnicalWeight() != null)
+                        ? config.getTechnicalWeight().doubleValue() * 150.0 : 75.0;
+                questCap = (config != null && config.getQuestionnaireWeight() != null)
+                        ? config.getQuestionnaireWeight().doubleValue() * 71.42857 : 25.0;
+
+                double questionnaireNormalizedRatio = totalEarnedQuestionnaireScore / relevantQuestionsCount;
+                questionnaireBonus = questionnaireNormalizedRatio * questCap;
             }
         }
 
-        int rawPercentage = (int) Math.round((skillMatchRatio * techScale) + Math.min(questCap, questionnaireBonus));
-        if (rawPercentage < minScore) {
-            rawPercentage = minScore;
+        int rawPercentage;
+        if (answers != null && !answers.isEmpty() && questionnaireBonus > 0) {
+            rawPercentage = (int) Math.round((skillMatchRatio * techScale) + questionnaireBonus);
+        } else {
+            // Skill-only evaluation when no relevant questionnaire answers exist
+            rawPercentage = (int) Math.round(skillMatchRatio * 100.0);
         }
-        if (rawPercentage > 98) {
-            rawPercentage = 98;
+        
+        // ANOM-01: Remove artificial minScore flatline from calculated matchScore.
+        if (rawPercentage < 0) {
+            rawPercentage = 0;
         }
 
-        String confidenceLevel = "Moderate";
+        // ANOM-02: Allow true 100% match for perfect candidates.
+        if (rawPercentage > 100) {
+            rawPercentage = 100;
+        }
+
+        boolean isRecommended = (rawPercentage >= minScore);
+
+        String confidenceLevel = "Low";
         if (rawPercentage >= 85) {
             confidenceLevel = "High";
         } else if (rawPercentage >= 70) {
             confidenceLevel = "Medium";
+        } else if (rawPercentage >= minScore) {
+            confidenceLevel = "Moderate";
         }
 
         String fitReason;
@@ -157,9 +215,11 @@ public class CareerScoringEngine {
 
         return new CalculationResult(
                 rawPercentage,
+                readinessScore,
+                isRecommended,
                 confidenceLevel,
                 fitReason,
-                "Deterministic Algorithm v2.4",
+                "Deterministic Algorithm v2.5",
                 keyStrengths,
                 keyGaps
         );
@@ -175,6 +235,8 @@ public class CareerScoringEngine {
     @lombok.Value
     public static class CalculationResult {
         int matchScore;
+        int readinessScore;
+        boolean isRecommended;
         String confidenceLevel;
         String fitReason;
         String systemCalculatedBadge;

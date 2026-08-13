@@ -116,6 +116,8 @@ public class CareerDiscoveryService {
             responses.add(CareerMatchResponse.builder()
                     .career(careerMapper.toCareerResponse(career))
                     .matchScore(calc.getMatchScore())
+                    .readinessScore(calc.getReadinessScore())
+                    .isRecommended(calc.isRecommended())
                     .keyStrengths(calc.getKeyStrengths())
                     .keyGaps(calc.getKeyGaps())
                     .confidenceLevel(calc.getConfidenceLevel())
@@ -136,6 +138,12 @@ public class CareerDiscoveryService {
             return calculateAndPersistCareerMatches(userId);
         }
 
+        int minScoreThreshold = 45;
+        SystemConfig currentCfg = careerScoringEngine.getCurrentSystemConfig();
+        if (currentCfg != null && currentCfg.getMinimumMatchThreshold() != null) {
+            minScoreThreshold = currentCfg.getMinimumMatchThreshold();
+        }
+
         List<CareerMatchResponse> responses = new ArrayList<>();
         for (CareerMatchResult cmr : savedResults) {
             List<String> strengths;
@@ -148,9 +156,14 @@ public class CareerDiscoveryService {
                 gaps = Collections.emptyList();
             }
 
+            int score = cmr.getMatchScore() != null ? cmr.getMatchScore() : 0;
+            boolean isRecommended = score >= minScoreThreshold;
+
             responses.add(CareerMatchResponse.builder()
                     .career(careerMapper.toCareerResponse(cmr.getCareer()))
-                    .matchScore(cmr.getMatchScore())
+                    .matchScore(score)
+                    .readinessScore(null)
+                    .isRecommended(isRecommended)
                     .keyStrengths(strengths)
                     .keyGaps(gaps)
                     .confidenceLevel(cmr.getConfidenceLevel())

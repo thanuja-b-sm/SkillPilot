@@ -248,11 +248,20 @@ export const CareerResultsPage: React.FC = () => {
                       <p className="text-xs text-slate-600 leading-relaxed max-w-3xl">{match.career.description}</p>
                     </div>
 
-                    {/* Score Badge */}
-                    <div className="flex sm:flex-col items-center justify-between sm:justify-center p-3.5 bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl min-w-[140px] text-center shadow-xs shrink-0">
-                      <span className="text-[10px] font-medium text-slate-300 uppercase tracking-wider">Match Index</span>
-                      <span className="text-2xl font-black text-blue-400">{match.matchScore}%</span>
-                      <span className="text-[9px] text-emerald-400 font-semibold mt-0.5">Calculated Metric</span>
+                    {/* Score Badges */}
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="flex sm:flex-col items-center justify-between sm:justify-center p-3 bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl min-w-[120px] text-center shadow-xs" title="Overall career compatibility (Skills + Questionnaire)">
+                        <span className="text-[10px] font-medium text-slate-300 uppercase tracking-wider">Match Score</span>
+                        <span className="text-2xl font-black text-blue-400">{match.matchScore}%</span>
+                        <span className="text-[9px] text-slate-300 font-semibold mt-0.5">Overall Compatibility</span>
+                      </div>
+                      {match.readinessScore !== undefined && match.readinessScore !== null && (
+                        <div className="flex sm:flex-col items-center justify-between sm:justify-center p-3 bg-slate-100 text-slate-900 rounded-2xl min-w-[120px] text-center border border-slate-200 shadow-xs" title="Current skill readiness against career requirements">
+                          <span className="text-[10px] font-medium text-slate-600 uppercase tracking-wider">Readiness</span>
+                          <span className="text-2xl font-black text-emerald-600">{match.readinessScore}%</span>
+                          <span className="text-[9px] text-slate-500 font-semibold mt-0.5">Skill Fulfillment</span>
+                        </div>
+                      )}
                     </div>
 
                   </div>

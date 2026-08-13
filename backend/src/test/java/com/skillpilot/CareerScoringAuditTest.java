@@ -59,9 +59,9 @@ public class CareerScoringAuditTest {
         );
 
         CareerScoringEngine.CalculationResult res = scoringEngine.calculateMatch(aiCareer, maxSkills, Collections.emptyList());
-        // Max technical ratio = 32 / 32 = 1.0. 1.0 * 75 = 75%
-        assertEquals(75, res.getMatchScore());
-        assertEquals("Medium", res.getConfidenceLevel());
+        // Max technical ratio = 32 / 32 = 1.0 -> 100%
+        assertEquals(100, res.getMatchScore());
+        assertEquals("High", res.getConfidenceLevel());
     }
 
     @Test
@@ -69,34 +69,34 @@ public class CareerScoringAuditTest {
     void testCaseB_MinimumSkillLevels() {
         Map<String, Integer> minSkills = Collections.emptyMap();
         CareerScoringEngine.CalculationResult res = scoringEngine.calculateMatch(aiCareer, minSkills, Collections.emptyList());
-        // Raw score 0% -> clamped to 45%
-        assertEquals(45, res.getMatchScore());
-        assertEquals("Moderate", res.getConfidenceLevel());
+        // Raw score 0% -> true 0%
+        assertEquals(0, res.getMatchScore());
+        assertEquals("Low", res.getConfidenceLevel());
     }
 
     @Test
-    @DisplayName("CASE C & D: Improving and decreasing a required skill above 45% threshold changes score dynamically")
+    @DisplayName("CASE C & D: Improving and decreasing a required skill above threshold changes score dynamically")
     void testCaseC_D_SkillIncreaseAndDecrease() {
-        // User starts with Python 5 and Problem Solving 4 -> earned 18 / 32 = 0.5625 * 75 = 42.18% -> clamped to 45%
+        // User starts with Python 5 and Problem Solving 4 -> earned 18 / 32 = 56.25% -> rounded to 56%
         Map<String, Integer> baseSkills = Map.of("python", 5, "problem-solving", 4);
         CareerScoringEngine.CalculationResult baseRes = scoringEngine.calculateMatch(aiCareer, baseSkills, Collections.emptyList());
-        assertEquals(45, baseRes.getMatchScore());
+        assertEquals(56, baseRes.getMatchScore());
 
-        // User adds Machine Learning level 4 -> earned 18 + 8 = 26 / 32 = 0.8125 * 75 = 60.93% -> rounded to 61%
+        // User adds Machine Learning level 4 -> earned 18 + 8 = 26 / 32 = 81.25% -> rounded to 81%
         Map<String, Integer> improvedSkills = Map.of("python", 5, "problem-solving", 4, "machine-learning", 4);
         CareerScoringEngine.CalculationResult improvedRes = scoringEngine.calculateMatch(aiCareer, improvedSkills, Collections.emptyList());
-        assertEquals(61, improvedRes.getMatchScore());
+        assertEquals(81, improvedRes.getMatchScore());
         assertTrue(improvedRes.getMatchScore() > baseRes.getMatchScore());
 
-        // Decreasing Machine Learning back to 0 reduces score back to 45%
+        // Decreasing Machine Learning back to 0 reduces score back to 56%
         CareerScoringEngine.CalculationResult decreasedRes = scoringEngine.calculateMatch(aiCareer, baseSkills, Collections.emptyList());
-        assertEquals(45, decreasedRes.getMatchScore());
+        assertEquals(56, decreasedRes.getMatchScore());
     }
 
     @Test
-    @DisplayName("CASE E & F: Questionnaire alignment increases score by up to 23 percentage points")
+    @DisplayName("CASE E & F: Questionnaire alignment increases score by up to 25 percentage points")
     void testCaseE_F_QuestionnaireAlignment() {
-        Map<String, Integer> baseSkills = Map.of("python", 5, "problem-solving", 4, "machine-learning", 4); // 61%
+        Map<String, Integer> baseSkills = Map.of("python", 5, "problem-solving", 4, "machine-learning", 4); // 81% raw skill
 
         Question q1 = Question.builder().id("q1").build();
         QuestionOption opt1 = QuestionOption.builder()
@@ -114,13 +114,13 @@ public class CareerScoringAuditTest {
                 .selectedOptionIds("[\"q1-ai\"]")
                 .build();
 
-        // 61% base + questionnaire bonus ( (5/5)*4 + (5/5)*4 = 8 pts ) = 69%
+        // 81% * 0.75 (61% tech) + 25% questionnaire bonus = 86%
         CareerScoringEngine.CalculationResult aiRes = scoringEngine.calculateMatch(aiCareer, baseSkills, List.of(ansAI));
-        assertEquals(69, aiRes.getMatchScore());
+        assertEquals(86, aiRes.getMatchScore());
 
         // Poorly aligned questionnaire (e.g. unselected or non-matching skills)
         CareerScoringEngine.CalculationResult noBonusRes = scoringEngine.calculateMatch(aiCareer, baseSkills, Collections.emptyList());
-        assertEquals(61, noBonusRes.getMatchScore());
+        assertEquals(81, noBonusRes.getMatchScore());
     }
 
     @Test

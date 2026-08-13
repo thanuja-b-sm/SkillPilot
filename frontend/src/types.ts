@@ -86,9 +86,11 @@ export interface Career {
 export interface CareerMatchResult {
   career: Career;
   matchScore: number; // 0 - 100
+  readinessScore?: number;
+  isRecommended?: boolean;
   keyStrengths: string[];
   keyGaps: string[];
-  confidenceLevel: 'High' | 'Medium' | 'Moderate';
+  confidenceLevel: 'High' | 'Medium' | 'Moderate' | 'Low' | string;
   fitReason: string;
   systemCalculatedBadge: string;
 }
