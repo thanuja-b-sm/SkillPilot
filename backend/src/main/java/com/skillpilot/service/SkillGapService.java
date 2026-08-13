@@ -2,11 +2,13 @@ package com.skillpilot.service;
 
 import com.skillpilot.dto.response.SkillGapAnalysisResponse;
 import com.skillpilot.entity.Career;
+import com.skillpilot.entity.User;
 import com.skillpilot.entity.UserSkill;
 import com.skillpilot.entity.UserTargetCareer;
 import com.skillpilot.exception.BadRequestException;
 import com.skillpilot.exception.ResourceNotFoundException;
 import com.skillpilot.repository.CareerRepository;
+import com.skillpilot.repository.UserRepository;
 import com.skillpilot.repository.UserSkillRepository;
 import com.skillpilot.repository.UserTargetCareerRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ public class SkillGapService {
     private final UserTargetCareerRepository userTargetCareerRepository;
     private final CareerRepository careerRepository;
     private final UserSkillRepository userSkillRepository;
+    private final UserRepository userRepository;
     private final SkillGapAnalysisEngine skillGapAnalysisEngine;
 
     @Transactional(readOnly = true)
@@ -47,6 +50,7 @@ public class SkillGapService {
     }
 
     private SkillGapAnalysisResponse computeAnalysis(String userId, Career career) {
+        User user = userRepository.findById(userId).orElse(null);
         List<UserSkill> userSkills = userSkillRepository.findByUserId(userId);
         Map<String, Integer> userSkillMap = userSkills.stream()
                 .collect(Collectors.toMap(
@@ -55,6 +59,6 @@ public class SkillGapService {
                         (existing, replacement) -> Math.max(existing, replacement)
                 ));
 
-        return skillGapAnalysisEngine.analyze(career, userSkillMap);
+        return skillGapAnalysisEngine.analyze(career, userSkillMap, user);
     }
 }

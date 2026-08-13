@@ -12,7 +12,12 @@ import java.util.List;
 public class SkillGapAnalysisResponse {
 
     private CareerResponse career;
-    private Integer readinessScore;
+    private Integer readinessScore; // Retained for backward compatibility
+    private Integer skillReadiness;
+    private Integer experienceAlignment;
+    private Integer educationAlignment;
+    private Integer overallReadiness;
+
     private List<SkillGapItemResponse> skills;
     private List<String> strengths;
     private List<SkillGapItemResponse> missingSkills;
