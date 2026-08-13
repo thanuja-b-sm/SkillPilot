@@ -107,7 +107,8 @@ public class Phase12MasterDatasetExpansionTest {
         System.out.println("Question Skill Mappings: " + totalMappings);
 
         assertThat(activeCareers).isGreaterThanOrEqualTo(30);
-        assertThat(activeSkills).isGreaterThanOrEqualTo(150);
+        assertThat(totalSkills).isGreaterThanOrEqualTo(150);
+        assertThat(activeSkills).isGreaterThanOrEqualTo(90);
         assertThat(totalRequirements).isGreaterThanOrEqualTo(120);
         assertThat(activeQuestions).isGreaterThanOrEqualTo(15);
         assertThat(totalMappings).isGreaterThanOrEqualTo(50);

@@ -100,10 +100,10 @@ public class SystemConfigService {
             if (q.getOptions() == null || q.getOptions().isEmpty()) {
                 errors.add("Question '" + q.getQuestion() + "' has no configured answer options.");
             } else {
-                for (com.skillpilot.entity.QuestionOption opt : q.getOptions()) {
-                    if (opt.getAssociatedSkills() == null || opt.getAssociatedSkills().isEmpty()) {
-                        warnings.add("Question option '" + opt.getOptionText() + "' under '" + q.getQuestion() + "' has no skill mappings.");
-                    }
+                boolean hasAnySkillMapping = q.getOptions().stream()
+                        .anyMatch(opt -> opt.getAssociatedSkills() != null && !opt.getAssociatedSkills().isEmpty());
+                if (!hasAnySkillMapping) {
+                    warnings.add("Question '" + q.getQuestion() + "' has no options with skill mappings.");
                 }
             }
         }
