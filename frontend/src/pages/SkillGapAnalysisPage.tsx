@@ -21,6 +21,16 @@ export const SkillGapAnalysisPage: React.FC = () => {
 
   const isGuest = userRole === 'guest';
 
+  if (isLoadingSkillGap) {
+    return (
+      <div className="max-w-2xl mx-auto my-12 p-8 bg-white rounded-3xl border border-slate-200 text-center space-y-4 shadow-md">
+        <Loader2 className="w-10 h-10 animate-spin text-blue-600 mx-auto" />
+        <h2 className="text-lg font-bold text-slate-900">Synchronizing Skill Gap Analysis…</h2>
+        <p className="text-xs text-slate-500">Evaluating your proficiency against required target career benchmarks.</p>
+      </div>
+    );
+  }
+
   if (!selectedTargetCareer) {
     return (
       <div className="max-w-2xl mx-auto my-12 p-8 bg-white rounded-3xl border border-slate-200 text-center space-y-4">

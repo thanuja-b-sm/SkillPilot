@@ -50,7 +50,21 @@ export const QuestionnairePage: React.FC = () => {
     }
   };
 
-  if (!currentQuestion) return null;
+  if (!questionnaire || questionnaire.length === 0 || !currentQuestion) {
+    return (
+      <div className="max-w-2xl mx-auto my-12 p-8 bg-white rounded-3xl border border-slate-200 text-center space-y-4 shadow-md">
+        <HelpCircle className="w-12 h-12 text-slate-400 mx-auto" />
+        <h2 className="text-xl font-bold text-slate-900">Questionnaire Synchronizing</h2>
+        <p className="text-xs text-slate-500">Loading career-specific questions for your selected target career.</p>
+        <button
+          onClick={() => navigateTo('results')}
+          className="px-5 py-2.5 bg-blue-600 text-white font-bold text-xs rounded-xl cursor-pointer"
+        >
+          View Target Career Selection
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 text-left pb-16">

@@ -1058,13 +1058,19 @@ export const AdminDashboardPage: React.FC = () => {
               </div>
 
               {healthData && (
-                <div className={`px-3 py-1 rounded-xl text-xs font-extrabold flex items-center gap-1.5 ${
-                  healthData.status === 'HEALTHY' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
-                  healthData.status === 'WARNING' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
-                  'bg-red-100 text-red-800 border border-red-300'
-                }`}>
-                  <ShieldCheck className="w-4 h-4" />
-                  <span>HEALTH STATUS: {healthData.status}</span>
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <p className="font-black text-xl text-blue-600">{healthData.healthScore ?? 100}%</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Health Score</p>
+                  </div>
+                  <div className={`px-3 py-1 rounded-xl text-xs font-extrabold flex items-center gap-1.5 ${
+                    healthData.status === 'HEALTHY' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                    healthData.status === 'WARNING' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                    'bg-red-100 text-red-800 border border-red-300'
+                  }`}>
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>HEALTH STATUS: {healthData.status}</span>
+                  </div>
                 </div>
               )}
             </div>

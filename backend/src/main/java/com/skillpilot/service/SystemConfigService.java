@@ -68,8 +68,20 @@ public class SystemConfigService {
 
         List<Career> activeCareers = careerRepository.findByIsActiveTrue();
         for (Career c : activeCareers) {
-            if (careerSkillRequirementRepository.findByCareerId(c.getId()).isEmpty()) {
+            List<com.skillpilot.entity.CareerSkillRequirement> reqs = careerSkillRequirementRepository.findByCareerId(c.getId());
+            if (reqs.isEmpty()) {
                 warnings.add("Active career '" + c.getTitle() + "' has 0 required skills configured.");
+            } else {
+                boolean hasEssential = reqs.stream().anyMatch(r -> Boolean.TRUE.equals(r.getIsEssential()));
+                if (!hasEssential) {
+                    warnings.add("Active career '" + c.getTitle() + "' has no essential skills marked.");
+                }
+
+                boolean hasQuestionnaireCoverage = reqs.stream().anyMatch(r ->
+                        r.getSkill() != null && !questionSkillMappingRepository.findBySkillId(r.getSkill().getId()).isEmpty());
+                if (!hasQuestionnaireCoverage) {
+                    warnings.add("Active career '" + c.getTitle() + "' lacks questionnaire option coverage for its skills.");
+                }
             }
         }
 
@@ -78,19 +90,30 @@ public class SystemConfigService {
             if (careerSkillRequirementRepository.findBySkillId(s.getId()).isEmpty()) {
                 warnings.add("Active skill '" + s.getName() + "' is not assigned to any career requirement.");
             }
+            if (questionSkillMappingRepository.findBySkillId(s.getId()).isEmpty()) {
+                warnings.add("Active skill '" + s.getName() + "' has no questionnaire option mappings.");
+            }
         }
 
         List<Question> questions = questionRepository.findAll();
         for (Question q : questions) {
             if (q.getOptions() == null || q.getOptions().isEmpty()) {
                 errors.add("Question '" + q.getQuestion() + "' has no configured answer options.");
+            } else {
+                for (com.skillpilot.entity.QuestionOption opt : q.getOptions()) {
+                    if (opt.getAssociatedSkills() == null || opt.getAssociatedSkills().isEmpty()) {
+                        warnings.add("Question option '" + opt.getOptionText() + "' under '" + q.getQuestion() + "' has no skill mappings.");
+                    }
+                }
             }
         }
 
+        int healthScore = Math.max(0, 100 - (errors.size() * 10 + warnings.size() * 3));
         String status = errors.isEmpty() ? (warnings.isEmpty() ? "HEALTHY" : "WARNING") : "ERROR";
 
         return SystemHealthResponse.builder()
                 .status(status)
+                .healthScore(healthScore)
                 .activeCareersCount(activeCareers.size())
                 .activeSkillsCount(activeSkills.size())
                 .totalRequirementsCount((int) careerSkillRequirementRepository.count())
