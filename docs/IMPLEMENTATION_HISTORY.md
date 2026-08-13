@@ -92,6 +92,20 @@
 - **Files Changed:** `V8__expand_user_profile_and_roadmap_tracking.sql`, `User.java`, `RoadmapMilestone.java`, `ProfileUpdateRequest.java`, `UserProfileResponse.java`, `RoadmapMilestoneResponse.java`, `CareerRoadmapResponse.java`, `MilestoneProgressUpdateRequest.java`, `UserProfileService.java`, `UserProfileMapper.java`, `CompletionCalculatorService.java`, `SkillGapItemResponse.java`, `SkillGapAnalysisResponse.java`, `SkillGapAnalysisEngine.java`, `SkillGapService.java`, `RoadmapGenerationEngine.java`, `RoadmapService.java`, `RoadmapController.java`, `types.ts`, `Header.tsx`, `ProfilePage.tsx`, `RoadmapPage.tsx`, `SkillGapAnalysisPage.tsx`, `Phase16UserIntelligenceAndRoadmapOverhaulTest.java`, `USER_INTELLIGENCE_ROADMAP_PLAN.md`, `IMPLEMENTATION_HISTORY.md`.
 - **Verification:** `Phase16UserIntelligenceAndRoadmapOverhaulTest.java` (6 tests) passed; `Phase8RoadmapGenerationTest.java` (8 tests) passed; full backend test suite passed (**165 / 165 passed**); frontend `npx tsc --noEmit` (0 errors) and `npm run build` passed.
 
+### Milestone 14: User Intelligence & Roadmap Real-Data Validation
+- **Problem:** Needed comprehensive acceptance validation of the expanded user intelligence profile, multi-dimensional readiness calculations, 3/6/12 month duration strategies, milestone progress persistence, regeneration safety, stale detection, and RBAC security against real MySQL master data.
+- **Solution:** 
+  1. Tested 8 controlled candidate personas (A-H) across 5 real active careers (`ai-software-engineer`, `cloud-solutions-architect`, `data-scientist`, `financial-analyst-quant`, `cybersecurity-incident-responder`).
+  2. Verified profile field persistence across hard refresh, logout/re-login, and server restart. Verified profile completeness score calculation ($0-100\%$).
+  3. Verified non-double-counting invariants: experience context and education alignment do not mask raw technical skill gaps. Verified 1-level experience-supported gap classification (`EXPERIENCE_SUPPORTED`).
+  4. Verified distinct duration strategies for 3 months (Rapid Intensive), 6 months (Standard Acceleration), and 12 months (Comprehensive Mastery).
+  5. Verified milestone status (`not_started`, `in_progress`, `completed`), progress %, notes, and timestamp persistence in MySQL across sessions.
+  6. Verified milestone progress preservation across roadmap regenerations for equivalent skills.
+  7. Verified stale roadmap detection trigger when user profile, skills, or target career change.
+  8. Created `Phase17UserIntelligenceRoadmapValidationTest.java` (7 integration tests). Created `USER_INTELLIGENCE_ROADMAP_VALIDATION.md`.
+- **Files Changed:** `RoadmapService.java`, `SkillGapAnalysisEngine.java`, `Phase17UserIntelligenceRoadmapValidationTest.java`, `USER_INTELLIGENCE_ROADMAP_VALIDATION.md`, `IMPLEMENTATION_HISTORY.md`.
+- **Verification:** `Phase17UserIntelligenceRoadmapValidationTest.java` (7 tests) passed; full backend test suite passed (**172 / 172 passed**); frontend `npx tsc --noEmit` (0 errors) and `npm run build` passed.
+
 ---
 
 ## 📈 Final Pre-Merge Audit & Verification Summary
@@ -100,12 +114,14 @@
 |---|---|---|---|
 | **Frontend Type Check (`npx tsc --noEmit`)** | **0 Errors** | Zero TypeScript compilation errors | **PASS** |
 | **Frontend Production Build (`npm run build`)** | **SUCCESS** | Vite SPA bundle built cleanly | **PASS** |
-| **Backend Test Suite (`.\mvnw.cmd test`)** | **165 / 165 Passed** | 100% JUnit 5 + Spring Boot integration test success | **PASS** |
+| **Backend Test Suite (`.\mvnw.cmd test`)** | **172 / 172 Passed** | 100% JUnit 5 + Spring Boot integration test success | **PASS** |
 | **Master Dataset Active Inventory** | **36 Careers, 92 Active Skills, 177 Reqs** | Realistic relational dataset populated via Flyway V6 & V7 & V8 | **PASS** |
 | **User Intelligence & Profile Completeness** | **Expanded Profile & Flyway V8** | 20 profile intelligence fields + weighted completeness meter | **PASS** |
 | **Experience-Aware Skill Gap Engine** | **Multi-Dimensional Readiness** | Skill, Experience & Education alignment + Experience buffers | **PASS** |
 | **Roadmap System & Persistence** | **3, 6, 12 Month Strategies** | MySQL milestone status, progress %, notes, & regeneration safety | **PASS** |
-| **Git Branch Status** | **feature/user-intelligence-roadmap-overhaul** | Clean working tree, unmerged into main | **PASS** |
+| **Real-Data Validation (Personas A-H)** | **100% Verified** | 8 personas across 5 careers validated; 0 regression | **PASS** |
+| **Git Branch Status** | **feature/user-intelligence-roadmap-validation** | Clean working tree, pushed to origin, unmerged into main | **PASS** |
+
 
 
 
