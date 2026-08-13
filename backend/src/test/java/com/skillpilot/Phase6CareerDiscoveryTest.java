@@ -101,9 +101,9 @@ public class Phase6CareerDiscoveryTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", isA(List.class)))
                 .andExpect(jsonPath("$[0].career.id", notNullValue()))
-                .andExpect(jsonPath("$[0].matchScore", greaterThanOrEqualTo(45)))
-                .andExpect(jsonPath("$[0].matchScore", lessThanOrEqualTo(98)))
-                .andExpect(jsonPath("$[0].systemCalculatedBadge", is("Deterministic Algorithm v2.4")));
+                .andExpect(jsonPath("$[0].matchScore", greaterThanOrEqualTo(0)))
+                .andExpect(jsonPath("$[0].matchScore", lessThanOrEqualTo(100)))
+                .andExpect(jsonPath("$[0].systemCalculatedBadge", is("Deterministic Algorithm v2.5")));
     }
 
     @Test
@@ -167,12 +167,12 @@ public class Phase6CareerDiscoveryTest {
         mockMvc.perform(get("/api/careers/matches")
                         .header("Authorization", "Bearer " + tokenA))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].matchScore", greaterThanOrEqualTo(45)));
+                .andExpect(jsonPath("$[0].matchScore", greaterThanOrEqualTo(0)));
 
         mockMvc.perform(get("/api/careers/matches")
                         .header("Authorization", "Bearer " + tokenA))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].matchScore", greaterThanOrEqualTo(45)));
+                .andExpect(jsonPath("$[0].matchScore", greaterThanOrEqualTo(0)));
     }
 
     @Test

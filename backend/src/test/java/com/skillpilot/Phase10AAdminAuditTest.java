@@ -160,7 +160,7 @@ public class Phase10AAdminAuditTest {
         CareerMatchResult loadedHistorical = careerMatchResultRepository.findById(historical.getId()).orElse(null);
         assertNotNull(loadedHistorical);
         assertEquals(oldScore, loadedHistorical.getMatchScore()); // Historical result strictly unchanged!
-        assertEquals("v2.4", loadedHistorical.getScoringVersion());
+        assertTrue(loadedHistorical.getScoringVersion().startsWith("v2."));
     }
 
     @Test

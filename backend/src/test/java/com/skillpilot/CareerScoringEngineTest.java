@@ -189,24 +189,26 @@ public class CareerScoringEngineTest {
     }
 
     @Test
-    @DisplayName("10. Score normalization bounds result between 45% and 98%")
+    @DisplayName("10. Score normalization bounds result between 0% and 100%")
     void test10_ScoreNormalizationBounds() {
         // Zero skills
         CareerScoringEngine.CalculationResult minRes = scoringEngine.calculateMatch(aiCareer, Collections.emptyMap(), Collections.emptyList());
-        assertEquals(45, minRes.getMatchScore());
+        assertEquals(0, minRes.getMatchScore());
+        assertFalse(minRes.isRecommended());
 
         // Perfect skills
         Map<String, Integer> maxSkills = Map.of("python", 5, "machine-learning", 5);
         CareerScoringEngine.CalculationResult maxRes = scoringEngine.calculateMatch(aiCareer, maxSkills, Collections.emptyList());
-        assertTrue(maxRes.getMatchScore() <= 98);
-        assertTrue(maxRes.getMatchScore() >= 45);
+        assertEquals(100, maxRes.getMatchScore());
+        assertTrue(maxRes.isRecommended());
     }
 
     @Test
-    @DisplayName("11. Minimum threshold clamping clamps score to 45 minimum")
+    @DisplayName("11. Score threshold eligibility tracks minimumMatchThreshold as isRecommended")
     void test11_MinimumThresholdClamping() {
         CareerScoringEngine.CalculationResult res = scoringEngine.calculateMatch(aiCareer, Collections.emptyMap(), Collections.emptyList());
-        assertEquals(45, res.getMatchScore());
+        assertEquals(0, res.getMatchScore());
+        assertFalse(res.isRecommended());
     }
 
     @Test
@@ -254,7 +256,7 @@ public class CareerScoringEngineTest {
     }
 
     @Test
-    @DisplayName("15. Confidence level mapping (High, Medium, Moderate)")
+    @DisplayName("15. Confidence level mapping (High, Medium, Moderate, Low)")
     void test15_ConfidenceLevelMapping() {
         Question q1 = Question.builder().id("q1").build();
         QuestionOption optHigh = QuestionOption.builder()
@@ -272,17 +274,17 @@ public class CareerScoringEngineTest {
         Map<String, Integer> highSkills = Map.of("python", 4, "machine-learning", 3);
         CareerScoringEngine.CalculationResult resHigh = scoringEngine.calculateMatch(aiCareer, highSkills, List.of(ans));
         assertTrue(resHigh.getMatchScore() >= 70);
-        assertEquals("Medium", scoringEngine.calculateMatch(aiCareer, highSkills, Collections.emptyList()).getConfidenceLevel());
+        assertEquals("High", scoringEngine.calculateMatch(aiCareer, highSkills, Collections.emptyList()).getConfidenceLevel());
 
         CareerScoringEngine.CalculationResult resLow = scoringEngine.calculateMatch(aiCareer, Collections.emptyMap(), Collections.emptyList());
-        assertEquals("Moderate", resLow.getConfidenceLevel());
+        assertEquals("Low", resLow.getConfidenceLevel());
     }
 
     @Test
-    @DisplayName("16. System calculated badge matches 'Deterministic Algorithm v2.4'")
+    @DisplayName("16. System calculated badge matches 'Deterministic Algorithm v2.5'")
     void test16_SystemCalculatedBadge() {
         CareerScoringEngine.CalculationResult res = scoringEngine.calculateMatch(aiCareer, Collections.emptyMap(), Collections.emptyList());
-        assertEquals("Deterministic Algorithm v2.4", res.getSystemCalculatedBadge());
+        assertEquals("Deterministic Algorithm v2.5", res.getSystemCalculatedBadge());
     }
 
     @Test
