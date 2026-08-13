@@ -10,7 +10,8 @@ import {
   Plus,
   Save,
   Award,
-  Sparkles
+  Sparkles,
+  Info
 } from 'lucide-react';
 
 export const ProfilePage: React.FC = () => {
@@ -228,10 +229,15 @@ export const ProfilePage: React.FC = () => {
             <p className="text-xs text-slate-500 mt-0.5">
               Adjust sliders to rate your baseline level (0 = None, 5 = Expert). Changes dynamically update career matches.
             </p>
-            {selectedTargetCareer && (
+            {selectedTargetCareer ? (
               <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-800 text-[11px] font-bold rounded-lg border border-blue-200">
                 <Sparkles className="w-3.5 h-3.5 text-blue-600" />
                 <span>Showing skills relevant to target: <strong>{selectedTargetCareer.title}</strong></span>
+              </div>
+            ) : (
+              <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-900 text-[11px] font-medium rounded-lg border border-amber-200">
+                <Info className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                <span>No Target Career Selected. Choose a target career track to benchmark required proficiency levels.</span>
               </div>
             )}
           </div>
@@ -266,29 +272,56 @@ export const ProfilePage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredSkills.map(skill => {
             const currentLevel = getUserSkillLevel(skill.id);
+            const req = selectedTargetCareer?.requiredSkills?.find(r => r.skillId === skill.id || (r as any).skill?.id === skill.id);
+            const requiredLevel = req ? req.requiredLevel : ((skill as any).requiredLevel || 0);
+            const isEssential = req ? req.isEssential : ((skill as any).isEssential || false);
+            const gapAmount = requiredLevel > 0 ? Math.max(0, requiredLevel - currentLevel) : 0;
 
             return (
               <div 
                 key={skill.id}
-                className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-3 hover:border-blue-300 transition-colors"
+                className={`p-4 rounded-2xl border space-y-3 transition-colors ${
+                  req ? 'bg-white border-blue-200 shadow-xs hover:border-blue-400' : 'bg-slate-50/80 border-slate-200/80 hover:border-blue-300'
+                }`}
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-start justify-between gap-2">
                   <div>
                     <h4 className="text-sm font-bold text-slate-900">{skill.name}</h4>
-                    <span className="text-[10px] font-medium text-slate-500 bg-slate-200/60 px-2 py-0.5 rounded-md">
-                      {skill.category}
-                    </span>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="text-[10px] font-medium text-slate-500 bg-slate-200/60 px-2 py-0.5 rounded-md">
+                        {skill.category}
+                      </span>
+                      {req && (
+                        <span className="text-[10px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-md">
+                          Req: Lvl {requiredLevel}
+                        </span>
+                      )}
+                      {isEssential && (
+                        <span className="text-[9px] font-extrabold text-red-700 bg-red-100 px-1.5 py-0.5 rounded-md uppercase">
+                          Essential
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${
-                    currentLevel >= 4 
-                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
-                      : currentLevel >= 2
-                      ? 'bg-blue-50 text-blue-800 border-blue-200'
-                      : 'bg-slate-100 text-slate-600 border-slate-200'
-                  }`}>
-                    Lvl {currentLevel}/5
-                  </span>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${
+                      currentLevel >= 4 
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+                        : currentLevel >= 2
+                        ? 'bg-blue-50 text-blue-800 border-blue-200'
+                        : 'bg-slate-100 text-slate-600 border-slate-200'
+                    }`}>
+                      Lvl {currentLevel}/5
+                    </span>
+                    {req && requiredLevel > 0 && (
+                      <span className={`text-[10px] font-bold ${
+                        gapAmount === 0 ? 'text-emerald-600' : 'text-red-600'
+                      }`}>
+                        {gapAmount === 0 ? '✓ Target Met' : `Gap: -${gapAmount}`}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Level Label */}
