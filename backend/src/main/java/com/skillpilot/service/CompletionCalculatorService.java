@@ -14,29 +14,34 @@ public class CompletionCalculatorService {
 
         int score = 0;
 
-        // 1. Profile completeness (Up to 40%)
-        if (StringUtils.hasText(user.getName())) score += 5;
-        if (StringUtils.hasText(user.getEmail())) score += 5;
-        if (StringUtils.hasText(user.getTitle()) && !"Student Profile".equalsIgnoreCase(user.getTitle())) score += 5;
-        if (StringUtils.hasText(user.getEducation())) score += 5;
-        if (user.getExperienceYears() != null && user.getExperienceYears() > 0) score += 5;
-        if (StringUtils.hasText(user.getLocation())) score += 5;
-        if (StringUtils.hasText(user.getTargetFocus())) score += 5;
-        if (StringUtils.hasText(user.getBio())) score += 5;
-
-        // 2. User skills rated (Up to 30%)
-        int ratedSkills = user.getSkills() != null ? user.getSkills().size() : 0;
-        score += Math.min(30, ratedSkills * 6);
-
-        // 3. Target Career Selection (15%)
+        // 1. Target Career Selection (20%)
         if (user.getTargetCareer() != null) {
-            score += 15;
+            score += 20;
         }
 
-        // 4. Discovery Questionnaire Answers (15%)
-        if (user.getQuestionnaireAnswers() != null && !user.getQuestionnaireAnswers().isEmpty()) {
-            score += 15;
-        }
+        // 2. User Skills Rated (20%)
+        int ratedSkills = user.getSkills() != null ? user.getSkills().size() : 0;
+        score += Math.min(20, ratedSkills * 5);
+
+        // 3. Education Details (15%)
+        if (StringUtils.hasText(user.getEducation()) || StringUtils.hasText(user.getDegreeLevel())) score += 5;
+        if (StringUtils.hasText(user.getInstitutionName())) score += 5;
+        if (StringUtils.hasText(user.getMajorFieldOfStudy())) score += 5;
+
+        // 4. Experience Details (15%)
+        if (StringUtils.hasText(user.getEmploymentStatus())) score += 5;
+        if (user.getExperienceYears() != null && user.getExperienceYears() > 0) score += 5;
+        if (user.getRelevantExperienceYears() != null && user.getRelevantExperienceYears() > 0) score += 5;
+
+        // 5. Personal & Contact Details (15%)
+        if (StringUtils.hasText(user.getName())) score += 5;
+        if (StringUtils.hasText(user.getLocation())) score += 5;
+        if (StringUtils.hasText(user.getCountry())) score += 5;
+
+        // 6. Learning & Work Preferences (15%)
+        if (user.getWeeklyHoursAvailable() != null && user.getWeeklyHoursAvailable() > 0) score += 5;
+        if (StringUtils.hasText(user.getPreferredWorkMode())) score += 5;
+        if (StringUtils.hasText(user.getCareerGoal()) || StringUtils.hasText(user.getTargetFocus())) score += 5;
 
         return Math.min(100, Math.max(0, score));
     }

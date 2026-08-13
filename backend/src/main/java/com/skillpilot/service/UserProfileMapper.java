@@ -32,7 +32,6 @@ public class UserProfileMapper {
         }
 
         int completion = completionCalculatorService.calculateCompletionPercentage(user);
-
         String roleValue = (user.getRole() != null) ? user.getRole().getValue() : "STUDENT";
 
         return UserProfileResponse.builder()
@@ -41,10 +40,30 @@ public class UserProfileMapper {
                 .email(user.getEmail())
                 .title(user.getTitle() != null ? user.getTitle() : "Student Profile")
                 .education(user.getEducation() != null ? user.getEducation() : "")
+                .institutionName(user.getInstitutionName())
+                .degreeLevel(user.getDegreeLevel())
+                .majorFieldOfStudy(user.getMajorFieldOfStudy())
+                .graduationYear(user.getGraduationYear())
+                .educationStatus(user.getEducationStatus())
                 .experienceYears(user.getExperienceYears() != null ? user.getExperienceYears() : 0)
+                .employmentStatus(user.getEmploymentStatus())
+                .currentJobTitle(user.getCurrentJobTitle())
+                .currentIndustry(user.getCurrentIndustry())
+                .relevantExperienceYears(user.getRelevantExperienceYears() != null ? user.getRelevantExperienceYears() : 0)
                 .location(user.getLocation() != null ? user.getLocation() : "")
+                .country(user.getCountry())
+                .dateOfBirth(user.getDateOfBirth())
                 .targetFocus(user.getTargetFocus() != null ? user.getTargetFocus() : "")
+                .preferredWorkMode(user.getPreferredWorkMode())
+                .preferredEmploymentType(user.getPreferredEmploymentType())
+                .careerGoal(user.getCareerGoal())
+                .weeklyHoursAvailable(user.getWeeklyHoursAvailable() != null ? user.getWeeklyHoursAvailable() : 10)
+                .preferredLearningPace(user.getPreferredLearningPace() != null ? user.getPreferredLearningPace() : "Steady")
+                .preferredRoadmapDuration(user.getPreferredRoadmapDuration() != null ? user.getPreferredRoadmapDuration() : 6)
                 .bio(user.getBio() != null ? user.getBio() : "")
+                .certifications(user.getCertifications())
+                .portfolioUrl(user.getPortfolioUrl())
+                .careerInterests(user.getCareerInterests())
                 .completionPercentage(completion)
                 .userRole(roleValue)
                 .role(roleValue)

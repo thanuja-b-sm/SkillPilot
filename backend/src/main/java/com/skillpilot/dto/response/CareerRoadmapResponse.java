@@ -14,7 +14,12 @@ public class CareerRoadmapResponse {
     private String careerId;
     private String careerTitle;
     private String overallTimeline;
+    private Integer durationMonths;
     private Integer overallReadiness;
+    private Integer completedMilestonesCount;
+    private Integer totalMilestonesCount;
+    private Boolean isStale;
+    private String status;
     private String aiExplanation;
     private List<RoadmapMilestoneResponse> phases;
 }

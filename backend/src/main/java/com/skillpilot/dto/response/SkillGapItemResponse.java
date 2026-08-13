@@ -16,6 +16,8 @@ public class SkillGapItemResponse {
     private Integer requiredLevel;
     private Integer gapAmount;
     private String severity; // "critical", "high", "medium", "low"
+    private String classification; // "CRITICAL", "IMPORTANT", "MINOR", "EXPERIENCE_SUPPORTED", "SATISFIED"
+    private Boolean experienceSupported;
     private Boolean isEssential;
     private String recommendedAction;
 }
