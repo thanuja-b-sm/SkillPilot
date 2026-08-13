@@ -1,7 +1,9 @@
 package com.skillpilot.controller;
 
+import com.skillpilot.dto.request.MilestoneProgressUpdateRequest;
 import com.skillpilot.dto.request.RoadmapGenerateRequest;
 import com.skillpilot.dto.response.CareerRoadmapResponse;
+import com.skillpilot.dto.response.RoadmapMilestoneResponse;
 import com.skillpilot.security.SecurityUser;
 import com.skillpilot.service.RoadmapService;
 import jakarta.validation.Valid;
@@ -37,6 +39,17 @@ public class RoadmapController {
             @AuthenticationPrincipal SecurityUser securityUser,
             @PathVariable String roadmapId) {
         CareerRoadmapResponse response = roadmapService.getRoadmapById(securityUser.getId(), roadmapId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/api/user/roadmaps/{roadmapId}/milestones/{milestoneId}/progress")
+    public ResponseEntity<RoadmapMilestoneResponse> updateMilestoneProgress(
+            @AuthenticationPrincipal SecurityUser securityUser,
+            @PathVariable String roadmapId,
+            @PathVariable String milestoneId,
+            @Valid @RequestBody MilestoneProgressUpdateRequest request) {
+        RoadmapMilestoneResponse response = roadmapService.updateMilestoneProgress(
+                securityUser.getId(), roadmapId, milestoneId, request);
         return ResponseEntity.ok(response);
     }
 }

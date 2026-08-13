@@ -50,6 +50,28 @@ public class RoadmapMilestone {
     @Builder.Default
     private String status = "not_started"; // 'completed', 'in_progress', 'not_started'
 
+    @Column(name = "completion_percentage", nullable = false)
+    @Builder.Default
+    private Integer completionPercentage = 0;
+
+    @Column(name = "target_skill_id", length = 50)
+    private String targetSkillId;
+
+    @Column(name = "current_level")
+    private Integer currentLevel;
+
+    @Column(name = "required_level")
+    private Integer requiredLevel;
+
+    @Column(name = "gap_severity", length = 30)
+    private String gapSeverity;
+
+    @Column(columnDefinition = "TEXT")
+    private String notes;
+
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

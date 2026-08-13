@@ -11,6 +11,7 @@ import java.util.List;
 @Builder
 public class RoadmapMilestoneResponse {
     private String id;
+    private Integer phaseOrder;
     private String monthRange;
     private String phaseTitle;
     private String focusArea;
@@ -18,4 +19,11 @@ public class RoadmapMilestoneResponse {
     private String expectedOutcome;
     private List<String> recommendedCourses;
     private String status; // 'not_started', 'in_progress', 'completed'
+    private Integer completionPercentage;
+    private String targetSkillId;
+    private Integer currentLevel;
+    private Integer requiredLevel;
+    private String gapSeverity;
+    private String notes;
+    private String completedAt;
 }
