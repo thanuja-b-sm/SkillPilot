@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { 
   PageId, 
   UserRole, 
@@ -178,6 +178,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [backendCareerMatches, setBackendCareerMatches] = useState<CareerMatchResult[] | null>(null);
   const [backendSkillGap, setBackendSkillGap] = useState<any | null>(null);
+  const targetCareerSeqRef = useRef<number>(0);
 
   // Expose token setter so login pages can update context
   const setToken = (t: string | null) => {
@@ -743,44 +744,77 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       : [];
   })();
 
-  const selectTargetCareer = (careerId: string) => {
+  const selectTargetCareer = async (careerId: string) => {
+    const seq = ++targetCareerSeqRef.current;
+
     setSelectedTargetCareerId(careerId);
+
+    // 1. Immediately invalidate stale dependent state
+    setBackendSkillGap(null);
+    setActiveRoadmap(null);
+    setQuestionnaire([]);
+    setIsLoadingSkillGap(true);
+    setIsLoadingRoadmap(true);
+
     const target = careers.find(c => c.id === careerId);
     if (target) {
       showToast(`Selected "${target.title}" as Target Career!`, 'success');
     }
 
     const activeTok = token || localStorage.getItem('skillpilot_token');
-    if (activeTok) {
-      // Load career-specific questionnaire from backend
-      fetch(`/api/questionnaire/career/${careerId}`, {
-        headers: { 'Authorization': `Bearer ${activeTok}` }
-      })
-      .then(r => r.ok ? r.json() : null)
-      .then(qData => {
-        if (qData && Array.isArray(qData) && qData.length > 0) {
-          setQuestionnaire(qData);
-        }
-      })
-      .catch(err => console.warn('Failed to fetch career-specific questionnaire:', err));
+    if (!activeTok) {
+      setIsLoadingSkillGap(false);
+      setIsLoadingRoadmap(false);
+      return;
+    }
 
-      fetch('/api/user/target-career', {
+    try {
+      // 2. Persist target career selection to backend
+      const putRes = await fetch('/api/user/target-career', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${activeTok}`
         },
         body: JSON.stringify({ careerId })
-      })
-      .then(async () => {
-        fetchBackendSkillGap(activeTok);
-        // Try to load existing roadmap for new target; don't auto-generate
-        const hadExisting = await fetchExistingRoadmap(activeTok);
-        if (!hadExisting) {
-          setActiveRoadmap(null); // Clear stale roadmap
+      });
+
+      if (seq !== targetCareerSeqRef.current) return; // Stale request check
+
+      if (putRes.ok) {
+        // 3. Atomically load new career dependent data: questionnaire, skill-gap, roadmap
+        const [questRes, gapRes, roadRes] = await Promise.all([
+          fetch(`/api/questionnaire/career/${careerId}`, { headers: { 'Authorization': `Bearer ${activeTok}` } }),
+          fetch('/api/user/target-career/skill-gap', { headers: { 'Authorization': `Bearer ${activeTok}` } }),
+          fetch('/api/user/roadmaps', { headers: { 'Authorization': `Bearer ${activeTok}` } })
+        ]);
+
+        if (seq !== targetCareerSeqRef.current) return; // Stale request check
+
+        if (questRes.ok) {
+          const qData = await questRes.json();
+          if (Array.isArray(qData) && qData.length > 0) setQuestionnaire(qData);
         }
-      })
-      .catch(err => console.warn('Failed to persist target career:', err));
+
+        if (gapRes.ok) {
+          const gapData = await gapRes.json();
+          setBackendSkillGap(gapData);
+        }
+
+        if (roadRes.ok) {
+          const roadData = await roadRes.json();
+          if (roadData && roadData.careerId === careerId) {
+            setActiveRoadmap(roadData);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Failed target career synchronization:', err);
+    } finally {
+      if (seq === targetCareerSeqRef.current) {
+        setIsLoadingSkillGap(false);
+        setIsLoadingRoadmap(false);
+      }
     }
   };
 
