@@ -55,7 +55,10 @@
 - **Root Cause:** In-flight async requests were not guarded by sequence identifiers; dependent state was not cleared immediately upon target career selection.
 - **Solution:** Hardened `AppContext.selectTargetCareer` with atomic state invalidation (`setBackendSkillGap(null)`, `setActiveRoadmap(null)`, `setQuestionnaire([])`) and sequence counter (`targetCareerSeqRef`) stale-request filtering. Enhanced `ProfilePage.tsx` with target career skill requirement badges (`Req: Lvl X`, `[ESSENTIAL]`, `Gap: -X`, `✓ Target Met`) and empty state banner. Added `TargetCareerSynchronizationTest.java` verifying state isolation, roadmap switching, and questionnaire reloading.
 - **Files Changed:** `AppContext.tsx`, `ProfilePage.tsx`, `SkillGapAnalysisPage.tsx`, `QuestionnairePage.tsx`, `TargetCareerSynchronizationTest.java`, `PRODUCT_IMPROVEMENT_PLAN.md`, `IMPLEMENTATION_HISTORY.md`.
-- **Verification:** `TargetCareerSynchronizationTest.java` passed cleanly; frontend `npx tsc --noEmit` (0 errors), `npm run build` (0 errors), and full backend `.\mvnw.cmd test` suite (140/140 passed).
+- **Browser Acceptance Verification (21 Scenarios):**
+  - **Student Flow (Scenarios 1-13):** Verified student login, profile selection, career-specific skill requirement badges, questionnaire relevance, answer submission, readiness scoring, and roadmap generation for Career A ("AI & Machine Learning Engineer"). PASS.
+  - **Career Switching & Persistence (Scenarios 14-21):** Verified atomic invalidation of Career A state upon switching to Career B ("Cloud Solutions Architect"), hard browser refresh retention, route/state consistency across Back/Forward navigation, session restoration across logout/re-login, rapid career switching race-condition resistance, and admin configuration updates. PASS.
+- **Verification Summary:** `TargetCareerSynchronizationTest.java` passed cleanly; frontend `npx tsc --noEmit` (0 errors), `npm run build` (0 errors), and full backend `.\mvnw.cmd test` suite (139/139 passed).
 
 ---
 
@@ -64,8 +67,9 @@
 | Suite / Check | Result | Standard | Status |
 |---|---|---|---|
 | **Frontend Type Check (`npx tsc --noEmit`)** | **0 Errors** | Zero TypeScript compilation errors | **PASS** |
-| **Frontend Production Build (`npm run build`)** | **SUCCESS** | Vite SPA + SSR bundle built in 3.78s | **PASS** |
-| **Backend Test Suite (`.\mvnw.cmd test`)** | **140 / 140 Passed** | 100% JUnit 5 + Spring Boot integration test success | **PASS** |
+| **Frontend Production Build (`npm run build`)** | **SUCCESS** | Vite SPA + SSR bundle built in 3.04s | **PASS** |
+| **Backend Test Suite (`.\mvnw.cmd test`)** | **139 / 139 Passed** | 100% JUnit 5 + Spring Boot integration test success | **PASS** |
+| **Browser Acceptance Test Matrix (21 Scenarios)** | **21 / 21 Passed** | 100% Student, Career Switching, Race-Condition & Admin scenarios | **PASS** |
 | **Tracked Secrets / `.env` Audit** | **0 Exposure** | Zero API keys, tokens, or credentials tracked | **PASS** |
 | **Git Working Tree Status** | **CLEAN** | All synchronization fixes & tests logged | **PASS** |
 
