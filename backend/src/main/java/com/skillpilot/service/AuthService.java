@@ -35,6 +35,10 @@ public class AuthService {
 
     private static final Pattern PASSWORD_PATTERN = Pattern.compile("^(?=.*[0-9])(?=.*[A-Z]).{8,}$");
 
+    private final com.skillpilot.repository.PasswordResetCodeRepository passwordResetCodeRepository;
+    private static final java.security.SecureRandom SECURE_RANDOM = new java.security.SecureRandom();
+    private static final int MAX_RESET_ATTEMPTS = 5;
+
     @org.springframework.beans.factory.annotation.Autowired
     public AuthService(
             UserRepository userRepository,
@@ -42,13 +46,15 @@ public class AuthService {
             JwtTokenProvider tokenProvider,
             AuthenticationManager authenticationManager,
             UserProfileMapper userProfileMapper,
-            @org.springframework.beans.factory.annotation.Autowired(required = false) EmailService emailService) {
+            @org.springframework.beans.factory.annotation.Autowired(required = false) EmailService emailService,
+            com.skillpilot.repository.PasswordResetCodeRepository passwordResetCodeRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenProvider = tokenProvider;
         this.authenticationManager = authenticationManager;
         this.userProfileMapper = userProfileMapper;
         this.emailService = emailService;
+        this.passwordResetCodeRepository = passwordResetCodeRepository;
     }
 
     @Transactional
@@ -131,30 +137,8 @@ public class AuthService {
         return userProfileMapper.toProfileResponse(user);
     }
 
-    private static final java.util.concurrent.ConcurrentHashMap<String, ResetCodeDetails> RESET_CODE_MAP = new java.util.concurrent.ConcurrentHashMap<>();
-    private static final java.security.SecureRandom SECURE_RANDOM = new java.security.SecureRandom();
-    private static final int MAX_RESET_ATTEMPTS = 5;
 
-    @lombok.AllArgsConstructor
-    @lombok.Getter
-    private static class ResetCodeDetails {
-        private final String code;
-        private final java.time.LocalDateTime expiresAt;
-        private final java.util.concurrent.atomic.AtomicInteger attemptsCount;
-
-        public ResetCodeDetails(String code, java.time.LocalDateTime expiresAt) {
-            this.code = code;
-            this.expiresAt = expiresAt;
-            this.attemptsCount = new java.util.concurrent.atomic.AtomicInteger(0);
-        }
-    }
-
-    public static String getResetCodeForTesting(String email) {
-        ResetCodeDetails d = RESET_CODE_MAP.get(email.trim().toLowerCase());
-        return d != null ? d.getCode() : null;
-    }
-
-    @Transactional(readOnly = true)
+    @Transactional
     public com.skillpilot.dto.response.ForgotPasswordResponse forgotPassword(com.skillpilot.dto.request.ForgotPasswordRequest request) {
         if (request == null || request.getEmail() == null || request.getEmail().isBlank()) {
             throw new BadRequestException("Email address is required");
@@ -164,16 +148,30 @@ public class AuthService {
         java.util.Optional<User> userOpt = userRepository.findByEmailIgnoreCase(email);
 
         if (userOpt.isPresent()) {
+            // Invalidate any existing active unused codes for this email
+            passwordResetCodeRepository.invalidateAllActiveCodesForEmail(email);
+
+            // Generate 6-digit cryptographically secure code
             String resetCode = String.format("%06d", SECURE_RANDOM.nextInt(1000000));
             java.time.LocalDateTime expiresAt = java.time.LocalDateTime.now().plusMinutes(15);
-            RESET_CODE_MAP.put(email, new ResetCodeDetails(resetCode, expiresAt));
+
+            com.skillpilot.entity.PasswordResetCode codeEntity = com.skillpilot.entity.PasswordResetCode.builder()
+                    .id(UUID.randomUUID().toString())
+                    .email(email)
+                    .resetCode(resetCode)
+                    .expiresAt(expiresAt)
+                    .attemptsCount(0)
+                    .isUsed(false)
+                    .build();
+
+            passwordResetCodeRepository.save(codeEntity);
 
             if (emailService != null) {
                 emailService.sendPasswordResetEmail(email, resetCode);
             }
         }
 
-        // Generic response — does not reveal whether the email exists
+        // Generic response — does not reveal whether the email exists (anti-enumeration)
         return com.skillpilot.dto.response.ForgotPasswordResponse.builder()
                 .message("If an account with that email address is registered in SkillPilot, a 6-digit verification code has been sent.")
                 .resetCode(null)
@@ -187,26 +185,29 @@ public class AuthService {
         }
 
         String email = request.getEmail().trim().toLowerCase();
-        ResetCodeDetails details = RESET_CODE_MAP.get(email);
+        com.skillpilot.entity.PasswordResetCode activeCode = passwordResetCodeRepository
+                .findFirstByEmailIgnoreCaseAndIsUsedFalseOrderByCreatedAtDesc(email)
+                .orElseThrow(() -> new BadRequestException("Invalid or expired verification reset code. Please request a new code."));
 
-        if (details == null) {
-            throw new BadRequestException("Invalid or expired verification reset code. Please request a new code.");
-        }
-
-        if (details.getExpiresAt().isBefore(java.time.LocalDateTime.now())) {
-            RESET_CODE_MAP.remove(email);
+        if (activeCode.getExpiresAt().isBefore(java.time.LocalDateTime.now())) {
+            activeCode.setIsUsed(true);
+            passwordResetCodeRepository.save(activeCode);
             throw new BadRequestException("Verification reset code has expired. Please request a new code.");
         }
 
-        if (details.getAttemptsCount().get() >= MAX_RESET_ATTEMPTS) {
-            RESET_CODE_MAP.remove(email);
+        if (activeCode.getAttemptsCount() >= MAX_RESET_ATTEMPTS) {
+            activeCode.setIsUsed(true);
+            passwordResetCodeRepository.save(activeCode);
             throw new BadRequestException("Maximum verification attempts exceeded. Please request a new verification code.");
         }
 
-        if (!details.getCode().equals(request.getResetCode().trim())) {
-            int currentAttempts = details.getAttemptsCount().incrementAndGet();
-            if (currentAttempts >= MAX_RESET_ATTEMPTS) {
-                RESET_CODE_MAP.remove(email);
+        if (!activeCode.getResetCode().equals(request.getResetCode().trim())) {
+            activeCode.setAttemptsCount(activeCode.getAttemptsCount() + 1);
+            if (activeCode.getAttemptsCount() >= MAX_RESET_ATTEMPTS) {
+                activeCode.setIsUsed(true);
+            }
+            passwordResetCodeRepository.save(activeCode);
+            if (activeCode.getIsUsed()) {
                 throw new BadRequestException("Maximum verification attempts exceeded. Please request a new verification code.");
             }
             throw new BadRequestException("Invalid verification reset code.");
@@ -222,7 +223,9 @@ public class AuthService {
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
 
-        RESET_CODE_MAP.remove(email);
+        // Mark code as used
+        activeCode.setIsUsed(true);
+        passwordResetCodeRepository.save(activeCode);
 
         return com.skillpilot.dto.response.ForgotPasswordResponse.builder()
                 .message("Password updated successfully. You can now log in with your new password.")
@@ -230,3 +233,4 @@ public class AuthService {
                 .build();
     }
 }
+
