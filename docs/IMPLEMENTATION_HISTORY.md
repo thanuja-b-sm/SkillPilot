@@ -106,6 +106,18 @@
 - **Files Changed:** `RoadmapService.java`, `SkillGapAnalysisEngine.java`, `Phase17UserIntelligenceRoadmapValidationTest.java`, `USER_INTELLIGENCE_ROADMAP_VALIDATION.md`, `IMPLEMENTATION_HISTORY.md`.
 - **Verification:** `Phase17UserIntelligenceRoadmapValidationTest.java` (7 tests) passed; full backend test suite passed (**172 / 172 passed**); frontend `npx tsc --noEmit` (0 errors) and `npm run build` passed.
 
+### Milestone 15: Bootcamp Phase 0 – Architecture Discovery Documentation
+- **Problem:** Comprehensive, beginner-friendly architectural discovery documentation was required under `docs/bootcamp/` to guide engineers and students through the SkillPilot full-stack codebase.
+- **Solution:** 
+  1. Created `PROJECT_ARCHITECTURE.md`: High-level architecture, browser-to-database request lifecycle, Gemini AI boundary model, authentication flow, and full repository layout.
+  2. Created `BACKEND_ARCHITECTURE.md`: Detailed breakdown of all backend packages (`controller`, `service`, `repository`, `entity`, `dto`, `security`, `config`, `exception`, `ai`, and deterministic engines), accompanied by dependency flow diagrams.
+  3. Created `FRONTEND_ARCHITECTURE.md`: React 19 + TypeScript + Tailwind SPA architecture, `AppContext.tsx` state machine, 10 screen views, navigation flow, and universal type contracts.
+  4. Created `DATABASE_ARCHITECTURE.md`: MySQL 8.0 schema catalog, Entity-Relationship (ER) diagrams, foreign keys, cascade rules, snapshot serialization, and Flyway migration history (`V1` to `V8`).
+  5. Created `API_FLOW_MAP.md`: Comprehensive REST API endpoint directory across Auth, User, Careers, Questionnaire, Skill Gap, Roadmap, AI, and Admin modules, linking controllers, services, repositories, and tables.
+  6. Created `CODEBASE_INDEX.md`: Guided codebase learning index categorizing critical files by path, purpose, difficulty, and bootcamp curriculum module.
+- **Files Changed:** `docs/bootcamp/PROJECT_ARCHITECTURE.md`, `docs/bootcamp/BACKEND_ARCHITECTURE.md`, `docs/bootcamp/FRONTEND_ARCHITECTURE.md`, `docs/bootcamp/DATABASE_ARCHITECTURE.md`, `docs/bootcamp/API_FLOW_MAP.md`, `docs/bootcamp/CODEBASE_INDEX.md`, `docs/IMPLEMENTATION_HISTORY.md`.
+- **Verification:** Read-only verification completed; documentation integrity verified; all files created cleanly in `docs/bootcamp/`.
+
 ---
 
 ## 📈 Final Pre-Merge Audit & Verification Summary
@@ -120,7 +132,9 @@
 | **Experience-Aware Skill Gap Engine** | **Multi-Dimensional Readiness** | Skill, Experience & Education alignment + Experience buffers | **PASS** |
 | **Roadmap System & Persistence** | **3, 6, 12 Month Strategies** | MySQL milestone status, progress %, notes, & regeneration safety | **PASS** |
 | **Real-Data Validation (Personas A-H)** | **100% Verified** | 8 personas across 5 careers validated; 0 regression | **PASS** |
-| **Git Branch Status** | **feature/user-intelligence-roadmap-validation** | Clean working tree, pushed to origin, unmerged into main | **PASS** |
+| **Bootcamp Architecture Documentation** | **6 Modules Completed** | docs/bootcamp/ guides created and cross-indexed | **PASS** |
+| **Git Branch Status** | **docs/bootcamp-architecture-discovery** | Documentation committed, pushed to origin | **PASS** |
+
 
 
 
