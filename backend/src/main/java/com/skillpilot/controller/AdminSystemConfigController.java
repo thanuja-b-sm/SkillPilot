@@ -18,6 +18,7 @@ import java.util.Map;
 public class AdminSystemConfigController {
 
     private final SystemConfigService systemConfigService;
+    private final com.skillpilot.service.EmailService emailService;
 
     @GetMapping("/config")
     public ResponseEntity<SystemConfigResponse> getConfig() {
@@ -33,4 +34,10 @@ public class AdminSystemConfigController {
     public ResponseEntity<Map<String, Object>> getStats() {
         return ResponseEntity.ok(systemConfigService.getDashboardStats());
     }
+
+    @GetMapping("/system/mail-health")
+    public ResponseEntity<Map<String, Object>> getMailHealth() {
+        return ResponseEntity.ok(emailService.getMailHealthDiagnostics());
+    }
 }
+
