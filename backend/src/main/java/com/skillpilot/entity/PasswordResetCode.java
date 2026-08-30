@@ -23,8 +23,12 @@ public class PasswordResetCode {
     @Column(length = 36)
     private String id;
 
+    @Column(name = "user_id", length = 36)
+    private String userId;
+
     @Column(nullable = false, length = 150)
     private String email;
+
 
     @Column(name = "reset_code", nullable = false, length = 10)
     private String resetCode;

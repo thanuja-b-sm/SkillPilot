@@ -1,5 +1,6 @@
 package com.skillpilot.service;
 
+import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,6 +10,11 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
+
 @Service
 public class EmailService {
 
@@ -16,30 +22,53 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${spring.mail.username:thanujasm61@gmail.com}")
+    @Value("${spring.mail.from-email:${spring.mail.username:thanujasm61@gmail.com}}")
     private String fromEmail;
+
+    @Value("${spring.mail.from-name:SkillPilot}")
+    private String fromName;
+
+    @Value("${spring.mail.host:smtp-relay.brevo.com}")
+    private String mailHost;
+
+    @Value("${spring.mail.port:587}")
+    private int mailPort;
+
+    // Diagnostics state
+    private volatile LocalDateTime lastSuccessfulEmail = null;
+    private volatile String lastFailure = null;
 
     public EmailService(@Autowired(required = false) JavaMailSender mailSender) {
         this.mailSender = mailSender;
     }
 
     public boolean sendPasswordResetEmail(String recipientEmail, String resetCode) {
+        return sendPasswordResetEmail(recipientEmail, resetCode, null, null);
+    }
+
+    public boolean sendPasswordResetEmail(String recipientEmail, String resetCode, String resetRequestId, LocalDateTime expiresAt) {
         if (recipientEmail == null || recipientEmail.isBlank()) {
             logger.warn("Password reset email dispatch aborted: recipient email is null or empty");
+            lastFailure = "Recipient email is null or empty";
             return false;
         }
 
         if (mailSender == null) {
             logger.warn("JavaMailSender is not configured. Skipping email dispatch for recipient: {}", recipientEmail);
+            lastFailure = "JavaMailSender not configured";
             return false;
         }
 
         try {
-            logger.info("Initiating password reset verification email dispatch to recipient: {}", recipientEmail);
+            logger.info("Initiating password reset verification email dispatch via Brevo SMTP to recipient: {} [ResetRequestID: {}, ExpiresAt: {}]", 
+                    recipientEmail, resetRequestId != null ? resetRequestId : "N/A", 
+                    expiresAt != null ? expiresAt.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : "N/A");
+            
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             
-            helper.setFrom(fromEmail);
+            helper.setFrom(new InternetAddress(fromEmail, fromName, "UTF-8"));
+            helper.setReplyTo(new InternetAddress(fromEmail, fromName, "UTF-8"));
             helper.setTo(recipientEmail);
             helper.setSubject("SkillPilot — Password Reset Verification Code");
 
@@ -48,14 +77,31 @@ public class EmailService {
 
             mailSender.send(message);
             String messageId = message.getMessageID();
-            logger.info("Password reset verification HTML email successfully delivered to recipient: {} (MessageID: {})", 
+            this.lastSuccessfulEmail = LocalDateTime.now();
+            this.lastFailure = null;
+            logger.info("Password reset verification HTML email successfully delivered via Brevo SMTP to recipient: {} (MessageID: {})", 
                     recipientEmail, messageId != null ? messageId : "generated");
             return true;
         } catch (Exception e) {
-            logger.error("Failed to send password reset verification email to recipient {}: {}", recipientEmail, e.getMessage(), e);
+            this.lastFailure = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            logger.error("Failed to send password reset verification email via Brevo SMTP to recipient {}: {}", recipientEmail, e.getMessage(), e);
             return false;
         }
     }
+
+    public Map<String, Object> getMailHealthDiagnostics() {
+        Map<String, Object> diagnostics = new HashMap<>();
+        diagnostics.put("provider", "Brevo SMTP");
+        diagnostics.put("host", mailHost);
+        diagnostics.put("port", mailPort);
+        diagnostics.put("sender", String.format("%s <%s>", fromName, fromEmail));
+        diagnostics.put("configured", mailSender != null);
+        diagnostics.put("authentication", true);
+        diagnostics.put("lastSuccessfulEmail", lastSuccessfulEmail != null ? lastSuccessfulEmail.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : null);
+        diagnostics.put("lastFailure", lastFailure);
+        return diagnostics;
+    }
+
 
     private String buildPasswordResetHtml(String resetCode) {
         return "<!DOCTYPE html>" +

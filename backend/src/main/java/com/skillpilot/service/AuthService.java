@@ -151,15 +151,18 @@ public class AuthService {
         java.util.Optional<User> userOpt = userRepository.findByEmailIgnoreCase(email);
 
         if (userOpt.isPresent()) {
+            User user = userOpt.get();
             // Invalidate any existing active unused codes for this email
             passwordResetCodeRepository.invalidateAllActiveCodesForEmail(email);
 
             // Generate 6-digit cryptographically secure code
             String resetCode = String.format("%06d", SECURE_RANDOM.nextInt(1000000));
             java.time.LocalDateTime expiresAt = java.time.LocalDateTime.now().plusMinutes(15);
+            String resetId = UUID.randomUUID().toString();
 
             com.skillpilot.entity.PasswordResetCode codeEntity = com.skillpilot.entity.PasswordResetCode.builder()
-                    .id(UUID.randomUUID().toString())
+                    .id(resetId)
+                    .userId(user.getId())
                     .email(email)
                     .resetCode(resetCode)
                     .expiresAt(expiresAt)
@@ -168,15 +171,16 @@ public class AuthService {
                     .build();
 
             passwordResetCodeRepository.save(codeEntity);
-            logger.info("Password reset code generated and persisted to database for recipient: {} (ExpiresAt: {})", email, expiresAt);
+            logger.info("Password reset code generated and persisted to database for recipient: {} [ResetID: {}, ExpiresAt: {}]", email, resetId, expiresAt);
 
             if (emailService != null) {
                 logger.info("Dispatching password reset verification email via EmailService for recipient: {}", email);
-                emailService.sendPasswordResetEmail(email, resetCode);
+                emailService.sendPasswordResetEmail(email, resetCode, resetId, expiresAt);
             } else {
                 logger.warn("EmailService is not available; skipping email dispatch for recipient: {}", email);
             }
         } else {
+
             logger.info("Forgot password requested for non-existent email (anti-enumeration active): {}", email);
         }
 
