@@ -16,15 +16,29 @@ import {
   Loader2,
   Lock,
   LogIn,
-  UserPlus
+  UserPlus,
+  Bookmark,
+  BookmarkCheck
 } from 'lucide-react';
 
 export const CareerResultsPage: React.FC = () => {
-  const { userRole, careerMatches, selectTargetCareer, selectedTargetCareer, navigateTo, recalculateCareerMatches, isLoadingMatches } = useApp();
+  const { 
+    userRole, 
+    careerMatches, 
+    selectTargetCareer, 
+    selectedTargetCareer, 
+    navigateTo, 
+    recalculateCareerMatches, 
+    isLoadingMatches,
+    savedCareers,
+    savedCareerIds,
+    toggleSaveCareer
+  } = useApp();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [sortBy, setSortBy] = useState<'match' | 'salary' | 'growth'>('match');
+  const [showOnlySaved, setShowOnlySaved] = useState(false);
 
   const isGuest = userRole === 'guest';
 
@@ -48,8 +62,10 @@ export const CareerResultsPage: React.FC = () => {
       const matchesSearch = match.career.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             match.career.description.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCat = selectedCategory === 'All' || match.career.category === selectedCategory;
-      return matchesSearch && matchesCat;
+      const matchesSaved = !showOnlySaved || savedCareerIds.has(match.career.id);
+      return matchesSearch && matchesCat && matchesSaved;
     })
+
     .sort((a, b) => {
       if (sortBy === 'match') return b.matchScore - a.matchScore;
       if (sortBy === 'salary') {
@@ -162,11 +178,22 @@ export const CareerResultsPage: React.FC = () => {
           {/* Quick Filter Chips */}
           <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
             <span className="text-[11px] font-bold text-slate-500 mr-1">Quick Filters:</span>
+            <button
+              onClick={() => setShowOnlySaved(prev => !prev)}
+              className={`px-2.5 py-1 border rounded-lg text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1 ${
+                showOnlySaved
+                  ? 'bg-rose-500 text-white border-rose-600 shadow-xs'
+                  : 'bg-slate-100 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 border-slate-200 text-slate-700'
+              }`}
+            >
+              <Bookmark className={`w-3 h-3 ${showOnlySaved ? 'fill-white text-white' : 'text-rose-500'}`} />
+              <span>Saved Only ({savedCareerIds.size})</span>
+            </button>
             {[
-              { label: '🔥 High Growth (+20%+)', action: () => { setSelectedCategory('All'); setSortBy('growth'); } },
-              { label: '💰 Top Compensation', action: () => { setSelectedCategory('All'); setSortBy('salary'); } },
-              { label: '🤖 AI & Engineering', action: () => { setSelectedCategory('Artificial Intelligence'); } },
-              { label: '☁️ Cloud & Infra', action: () => { setSelectedCategory('Cloud & Infrastructure'); } }
+              { label: '🔥 High Growth (+20%+)', action: () => { setSelectedCategory('All'); setSortBy('growth'); setShowOnlySaved(false); } },
+              { label: '💰 Top Compensation', action: () => { setSelectedCategory('All'); setSortBy('salary'); setShowOnlySaved(false); } },
+              { label: '🤖 AI & Engineering', action: () => { setSelectedCategory('Artificial Intelligence'); setShowOnlySaved(false); } },
+              { label: '☁️ Cloud & Infra', action: () => { setSelectedCategory('Cloud & Infrastructure'); setShowOnlySaved(false); } }
             ].map((chip, cIdx) => (
               <button
                 key={cIdx}
@@ -178,6 +205,7 @@ export const CareerResultsPage: React.FC = () => {
             ))}
           </div>
         </div>
+
 
         {/* Guest Teaser Banner */}
         {isGuest && (
@@ -319,9 +347,33 @@ export const CareerResultsPage: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-3">
+                      {!isGuest && (
+                        <button
+                          onClick={() => toggleSaveCareer(match.career.id)}
+                          title={savedCareerIds.has(match.career.id) ? "Remove from saved favorites" : "Save / Bookmark this career"}
+                          className={`px-3.5 py-2.5 rounded-xl font-semibold text-xs transition-all flex items-center gap-1.5 border cursor-pointer ${
+                            savedCareerIds.has(match.career.id)
+                              ? 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100 shadow-xs'
+                              : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                          }`}
+                        >
+                          {savedCareerIds.has(match.career.id) ? (
+                            <>
+                              <BookmarkCheck className="w-4 h-4 text-rose-600 fill-rose-500" />
+                              <span>Saved</span>
+                            </>
+                          ) : (
+                            <>
+                              <Bookmark className="w-4 h-4 text-slate-400" />
+                              <span>Save</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+
                       <button
                         onClick={() => handleSelectAndProceed(match.career.id)}
-                        className={`px-5 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-2 ${
+                        className={`px-5 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-2 cursor-pointer ${
                           isSelected
                             ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
                             : 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs'
@@ -333,6 +385,7 @@ export const CareerResultsPage: React.FC = () => {
                       </button>
                     </div>
                   </div>
+
 
                 </div>
 

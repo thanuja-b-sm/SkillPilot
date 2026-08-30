@@ -195,3 +195,17 @@ export interface SystemHealthResponse {
   warnings: string[];
   errors: string[];
 }
+
+export interface SavedCareer {
+  id: string;
+  careerId: string;
+  title: string;
+  category: string;
+  description: string;
+  averageSalary: string;
+  growthRate: string;
+  demandLevel: string;
+  notes?: string;
+  savedAt: string;
+}
+
