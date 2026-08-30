@@ -9,7 +9,8 @@ import {
   SkillGapItem, 
   CareerRoadmap,
   SystemConfig,
-  SkillMeta
+  SkillMeta,
+  SavedCareer
 } from '../types';
 import { 
   INITIAL_CAREERS, 
@@ -67,6 +68,12 @@ interface AppContextType {
   careers: Career[];
   selectedTargetCareer: Career | null;
   selectTargetCareer: (careerId: string) => void;
+
+  // Saved / Favorite Careers
+  savedCareers: SavedCareer[];
+  savedCareerIds: Set<string>;
+  toggleSaveCareer: (careerId: string, notes?: string) => Promise<boolean>;
+  loadSavedCareers: () => Promise<void>;
   
   // Match & Analysis State
   careerMatches: CareerMatchResult[];
@@ -78,6 +85,7 @@ interface AppContextType {
   activeRoadmap: CareerRoadmap | null;
   isLoadingRoadmap: boolean;
   generateRoadmap: (durationMonths: number) => Promise<void>;
+
   
   // AI State
   aiEnhancing: boolean;
@@ -204,6 +212,78 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     .catch(err => console.warn('Failed to fetch backend career matches:', err))
     .finally(() => setIsLoadingMatches(false));
   }, []);
+
+  const [savedCareers, setSavedCareers] = useState<SavedCareer[]>([]);
+  const [savedCareerIds, setSavedCareerIds] = useState<Set<string>>(new Set());
+
+  const fetchSavedCareers = useCallback((authToken: string) => {
+    fetch('/api/user/saved-careers', {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    })
+    .then(r => r.ok ? r.json() : [])
+    .then((data: SavedCareer[]) => {
+      if (Array.isArray(data)) {
+        setSavedCareers(data);
+        setSavedCareerIds(new Set(data.map(sc => sc.careerId)));
+      }
+    })
+    .catch(err => console.warn('Failed to fetch saved careers:', err));
+  }, []);
+
+  const loadSavedCareers = useCallback(async () => {
+    const activeTok = token || localStorage.getItem('skillpilot_token');
+    if (!activeTok) return;
+    fetchSavedCareers(activeTok);
+  }, [token, fetchSavedCareers]);
+
+  const toggleSaveCareer = useCallback(async (careerId: string, notes?: string): Promise<boolean> => {
+    const activeTok = token || localStorage.getItem('skillpilot_token');
+    if (!activeTok) {
+      showToast('Please log in to save careers.', 'warning');
+      return false;
+    }
+
+    const isCurrentlySaved = savedCareerIds.has(careerId);
+    if (isCurrentlySaved) {
+      try {
+        const res = await fetch(`/api/user/saved-careers/${careerId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${activeTok}` }
+        });
+        if (res.ok) {
+          setSavedCareers(prev => prev.filter(sc => sc.careerId !== careerId));
+          setSavedCareerIds(prev => {
+            const next = new Set(prev);
+            next.delete(careerId);
+            return next;
+          });
+          return false;
+        }
+      } catch (err) {
+        console.warn('Failed to unsave career:', err);
+      }
+    } else {
+      try {
+        const res = await fetch(`/api/user/saved-careers/${careerId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${activeTok}`
+          },
+          body: JSON.stringify(notes ? { notes } : {})
+        });
+        if (res.ok) {
+          const newSaved: SavedCareer = await res.json();
+          setSavedCareers(prev => [newSaved, ...prev.filter(sc => sc.careerId !== careerId)]);
+          setSavedCareerIds(prev => new Set(prev).add(careerId));
+          return true;
+        }
+      } catch (err) {
+        console.warn('Failed to save career:', err);
+      }
+    }
+    return isCurrentlySaved;
+  }, [token, savedCareerIds]);
 
   const fetchBackendSkillGap = useCallback((authToken: string) => {
     setIsLoadingSkillGap(true);
@@ -377,10 +457,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       fetchBackendCareerMatches(authToken);
       fetchBackendSkillGap(authToken);
       fetchExistingRoadmap(authToken);
+      fetchSavedCareers(authToken);
     } catch (err) {
       console.warn('Failed to fetch authenticated user data:', err);
     }
-  }, [fetchBackendCareerMatches, fetchBackendSkillGap, fetchExistingRoadmap]);
+  }, [fetchBackendCareerMatches, fetchBackendSkillGap, fetchExistingRoadmap, fetchSavedCareers]);
+
 
   const isInitializingRef = React.useRef(false);
 
@@ -595,9 +677,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setActiveRoadmap(null);
       setQuestionnaireAnswers({});
       setSelectedTargetCareerId('');
+      setSavedCareers([]);
+      setSavedCareerIds(new Set());
       navigateTo('landing');
       showToast('Logged out of session', 'info');
     }
+
   };
 
   // Persist User Skill update to Spring Boot backend
@@ -1338,6 +1423,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       careers,
       selectedTargetCareer,
       selectTargetCareer,
+      savedCareers,
+      savedCareerIds,
+      toggleSaveCareer,
+      loadSavedCareers,
       careerMatches,
       isLoadingMatches,
       recalculateCareerMatches,
