@@ -118,6 +118,16 @@
 - **Files Changed:** `docs/bootcamp/PROJECT_ARCHITECTURE.md`, `docs/bootcamp/BACKEND_ARCHITECTURE.md`, `docs/bootcamp/FRONTEND_ARCHITECTURE.md`, `docs/bootcamp/DATABASE_ARCHITECTURE.md`, `docs/bootcamp/API_FLOW_MAP.md`, `docs/bootcamp/CODEBASE_INDEX.md`, `docs/IMPLEMENTATION_HISTORY.md`.
 - **Verification:** Read-only verification completed; documentation integrity verified; all files created cleanly in `docs/bootcamp/`.
 
+### Milestone 16: Forgot Password Verification Code & Email Delivery Hardening
+- **Problem:** Password reset codes were stored in volatile in-memory state; email templates lacked modern SkillPilot branding, responsive structure, and structured SMTP delivery logging.
+- **Solution:** 
+  1. *Database Persistence & Flyway V9:* Created `password_reset_codes` table via `V9__add_password_reset_codes.sql` storing 6-digit `SecureRandom` codes, expiration timestamps (15 mins), and failed attempt counters.
+  2. *Security & Anti-Brute Force:* Added automatic invalidation of prior unused codes upon new requests, 5-attempt brute-force protection with automatic code burning, and anti-account-enumeration generic messaging.
+  3. *Email Template Redesign:* Replaced plaintext template with modern, responsive HTML email featuring SkillPilot dark slate header, blue branding, dashed verification code card (`38px`, `letter-spacing: 10px`), expiration badge, and security notice callouts.
+  4. *Testing:* Created `Phase18ForgotPasswordFlowTest.java` (7 integration tests) and updated `ForgotPasswordTest.java` verifying full lifecycle, anti-enumeration, expiration, attempt throttling, and password hashing updates.
+- **Files Changed:** `V9__add_password_reset_codes.sql`, `PasswordResetCode.java`, `PasswordResetCodeRepository.java`, `AuthService.java`, `EmailService.java`, `backend/.env.example`, `Phase18ForgotPasswordFlowTest.java`, `ForgotPasswordTest.java`, `FORGOT_PASSWORD_EMAIL_FIX.md`, `IMPLEMENTATION_HISTORY.md`.
+- **Verification:** Frontend `npx tsc --noEmit` (0 errors), `npm run build` (PASS), and backend `.\mvnw.cmd test` (**179 / 179 passed**).
+
 ---
 
 ## 📈 Final Pre-Merge Audit & Verification Summary
@@ -126,14 +136,13 @@
 |---|---|---|---|
 | **Frontend Type Check (`npx tsc --noEmit`)** | **0 Errors** | Zero TypeScript compilation errors | **PASS** |
 | **Frontend Production Build (`npm run build`)** | **SUCCESS** | Vite SPA bundle built cleanly | **PASS** |
-| **Backend Test Suite (`.\mvnw.cmd test`)** | **172 / 172 Passed** | 100% JUnit 5 + Spring Boot integration test success | **PASS** |
+| **Backend Test Suite (`.\mvnw.cmd test`)** | **179 / 179 Passed** | 100% JUnit 5 + Spring Boot integration test success | **PASS** |
 | **Master Dataset Active Inventory** | **36 Careers, 92 Active Skills, 177 Reqs** | Realistic relational dataset populated via Flyway V6 & V7 & V8 | **PASS** |
 | **User Intelligence & Profile Completeness** | **Expanded Profile & Flyway V8** | 20 profile intelligence fields + weighted completeness meter | **PASS** |
-| **Experience-Aware Skill Gap Engine** | **Multi-Dimensional Readiness** | Skill, Experience & Education alignment + Experience buffers | **PASS** |
-| **Roadmap System & Persistence** | **3, 6, 12 Month Strategies** | MySQL milestone status, progress %, notes, & regeneration safety | **PASS** |
+| **Password Reset Code Persistence** | **Flyway V9 & MySQL Repository** | 6-digit `SecureRandom`, 15-min expiry, 5-attempt limit, anti-enumeration | **PASS** |
 | **Real-Data Validation (Personas A-H)** | **100% Verified** | 8 personas across 5 careers validated; 0 regression | **PASS** |
-| **Bootcamp Architecture Documentation** | **6 Modules Completed** | docs/bootcamp/ guides created and cross-indexed | **PASS** |
-| **Git Branch Status** | **docs/bootcamp-architecture-discovery** | Documentation committed, pushed to origin | **PASS** |
+| **Git Branch Status** | **feature/fix-forgot-password-email** | Feature committed, pushed to origin | **PASS** |
+
 
 
 
