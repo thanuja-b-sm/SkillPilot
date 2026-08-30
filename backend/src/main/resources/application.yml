@@ -27,16 +27,23 @@ spring:
     locations: classpath:db/migration
 
   mail:
-    host: ${SPRING_MAIL_HOST:smtp.gmail.com}
+    host: ${SPRING_MAIL_HOST:smtp-relay.brevo.com}
     port: ${SPRING_MAIL_PORT:587}
-    username: ${SPRING_MAIL_USERNAME:thanujasm61@gmail.com}
+    username: ${SPRING_MAIL_USERNAME:b73021001@smtp-brevo.com}
     password: ${SPRING_MAIL_PASSWORD:}
+    from-name: ${SPRING_MAIL_FROM_NAME:SkillPilot}
+    from-email: ${SPRING_MAIL_FROM_EMAIL:thanujasm61@gmail.com}
+
     properties:
       mail:
         smtp:
           auth: true
           starttls:
             enable: true
+            required: true
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
 
 skillpilot:
   jwt:

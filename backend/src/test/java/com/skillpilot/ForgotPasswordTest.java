@@ -43,12 +43,16 @@ class ForgotPasswordTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private com.skillpilot.repository.PasswordResetCodeRepository passwordResetCodeRepository;
+
     private static final String TEST_EMAIL = "resetuser@skillpilot.io";
     private static final String ORIGINAL_PASSWORD = "OriginalPass123";
     private static final String NEW_PASSWORD = "UpdatedSecurePass123";
 
     @BeforeEach
     void setUp() {
+        passwordResetCodeRepository.deleteAll();
         userRepository.deleteAll();
 
         User user = User.builder()
@@ -77,9 +81,13 @@ class ForgotPasswordTest {
                 .andExpect(jsonPath("$.message", containsString("If an account with that email address is registered")))
                 .andExpect(jsonPath("$.resetCode", nullValue()));
 
-        String resetCode = AuthService.getResetCodeForTesting(TEST_EMAIL);
+        com.skillpilot.entity.PasswordResetCode codeEntity = passwordResetCodeRepository
+                .findFirstByEmailIgnoreCaseAndIsUsedFalseOrderByCreatedAtDesc(TEST_EMAIL)
+                .orElseThrow();
+        String resetCode = codeEntity.getResetCode();
         assertNotNull(resetCode);
         assertEquals(6, resetCode.length());
+
 
         // Step 2: Attempt reset with WRONG reset code (should fail)
         ResetPasswordRequest wrongCodeReq = ResetPasswordRequest.builder()

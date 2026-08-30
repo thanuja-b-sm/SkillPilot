@@ -106,6 +106,38 @@
 - **Files Changed:** `RoadmapService.java`, `SkillGapAnalysisEngine.java`, `Phase17UserIntelligenceRoadmapValidationTest.java`, `USER_INTELLIGENCE_ROADMAP_VALIDATION.md`, `IMPLEMENTATION_HISTORY.md`.
 - **Verification:** `Phase17UserIntelligenceRoadmapValidationTest.java` (7 tests) passed; full backend test suite passed (**172 / 172 passed**); frontend `npx tsc --noEmit` (0 errors) and `npm run build` passed.
 
+### Milestone 15: Bootcamp Phase 0 – Architecture Discovery Documentation
+- **Problem:** Comprehensive, beginner-friendly architectural discovery documentation was required under `docs/bootcamp/` to guide engineers and students through the SkillPilot full-stack codebase.
+- **Solution:** 
+  1. Created `PROJECT_ARCHITECTURE.md`: High-level architecture, browser-to-database request lifecycle, Gemini AI boundary model, authentication flow, and full repository layout.
+  2. Created `BACKEND_ARCHITECTURE.md`: Detailed breakdown of all backend packages (`controller`, `service`, `repository`, `entity`, `dto`, `security`, `config`, `exception`, `ai`, and deterministic engines), accompanied by dependency flow diagrams.
+  3. Created `FRONTEND_ARCHITECTURE.md`: React 19 + TypeScript + Tailwind SPA architecture, `AppContext.tsx` state machine, 10 screen views, navigation flow, and universal type contracts.
+  4. Created `DATABASE_ARCHITECTURE.md`: MySQL 8.0 schema catalog, Entity-Relationship (ER) diagrams, foreign keys, cascade rules, snapshot serialization, and Flyway migration history (`V1` to `V8`).
+  5. Created `API_FLOW_MAP.md`: Comprehensive REST API endpoint directory across Auth, User, Careers, Questionnaire, Skill Gap, Roadmap, AI, and Admin modules, linking controllers, services, repositories, and tables.
+  6. Created `CODEBASE_INDEX.md`: Guided codebase learning index categorizing critical files by path, purpose, difficulty, and bootcamp curriculum module.
+- **Files Changed:** `docs/bootcamp/PROJECT_ARCHITECTURE.md`, `docs/bootcamp/BACKEND_ARCHITECTURE.md`, `docs/bootcamp/FRONTEND_ARCHITECTURE.md`, `docs/bootcamp/DATABASE_ARCHITECTURE.md`, `docs/bootcamp/API_FLOW_MAP.md`, `docs/bootcamp/CODEBASE_INDEX.md`, `docs/IMPLEMENTATION_HISTORY.md`.
+- **Verification:** Read-only verification completed; documentation integrity verified; all files created cleanly in `docs/bootcamp/`.
+
+### Milestone 16: Forgot Password Verification Code & Email Delivery Hardening
+- **Problem:** Password reset codes were stored in volatile in-memory state; email templates lacked modern SkillPilot branding, responsive structure, and structured SMTP delivery logging.
+- **Solution:** 
+  1. *Database Persistence & Flyway V9:* Created `password_reset_codes` table via `V9__add_password_reset_codes.sql` storing 6-digit `SecureRandom` codes, expiration timestamps (15 mins), and failed attempt counters.
+  2. *Security & Anti-Brute Force:* Added automatic invalidation of prior unused codes upon new requests, 5-attempt brute-force protection with automatic code burning, and anti-account-enumeration generic messaging.
+  3. *Email Template Redesign:* Replaced plaintext template with modern, responsive HTML email featuring SkillPilot dark slate header, blue branding, dashed verification code card (`38px`, `letter-spacing: 10px`), expiration badge, and security notice callouts.
+  4. *Testing & Runtime Audit:* Created `Phase18ForgotPasswordFlowTest.java` (7 integration tests) and updated `ForgotPasswordTest.java` verifying full lifecycle, anti-enumeration, expiration, attempt throttling, and password hashing updates. Added structured lifecycle logs and audit reports.
+- **Files Changed:** `V9__add_password_reset_codes.sql`, `PasswordResetCode.java`, `PasswordResetCodeRepository.java`, `AuthService.java`, `EmailService.java`, `backend/.env.example`, `Phase18ForgotPasswordFlowTest.java`, `ForgotPasswordTest.java`, `FORGOT_PASSWORD_EMAIL_FIX.md`, `FORGOT_PASSWORD_RUNTIME_DEBUG.md`, `IMPLEMENTATION_HISTORY.md`.
+- **Verification:** Frontend `npx tsc --noEmit` (0 errors), `npm run build` (PASS), and backend `.\mvnw.cmd test` (**179 / 179 passed**).
+
+### Milestone 17: Brevo SMTP Forgot Password Migration & Production Hardening
+- **Problem:** Gmail SMTP required strict application passwords, had intermittent timeout/auth issues in production environments, and the Forgot Password UI lacked individual OTP boxes, countdown timers, and live diagnostics.
+- **Solution:** 
+  1. *Brevo SMTP Migration:* Replaced Gmail with Brevo SMTP relay (`smtp-relay.brevo.com:587`, STARTTLS enabled, 10s connection/read/write timeouts).
+  2. *Admin SMTP Diagnostics:* Added `GET /api/admin/system/mail-health` endpoint and live Mail Health Card in the Admin Dashboard (status, provider, sender, last successful dispatch timestamp, failure message).
+  3. *Frontend 6-Digit OTP Redesign:* Updated `LoginPage.tsx` with 6 dedicated OTP inputs, auto-focus, paste support, backspace navigation, 15-minute countdown, 60-second resend cooldown, password strength meter, and show/hide password toggles.
+  4. *Testing:* Created `Phase18BrevoForgotPasswordIntegrationTest.java` (5 integration tests) verifying Brevo SMTP configuration, MySQL persistence, code burning on 5 attempts, and health endpoint response.
+- **Files Changed:** `application.yml`, `backend/.env.example`, `EmailService.java`, `AuthService.java`, `PasswordResetCode.java`, `V9__add_password_reset_codes.sql`, `AdminSystemConfigController.java`, `LoginPage.tsx`, `AdminDashboardPage.tsx`, `Phase18BrevoForgotPasswordIntegrationTest.java`, `BREVO_SMTP_FORGOT_PASSWORD_AUDIT.md`, `IMPLEMENTATION_HISTORY.md`.
+- **Verification:** Frontend `npx tsc --noEmit` (0 errors), `npm run build` (PASS), and backend `.\mvnw.cmd test` (**184 / 184 passed**, 0 failures, 0 errors).
+
 ---
 
 ## 📈 Final Pre-Merge Audit & Verification Summary
@@ -114,13 +146,17 @@
 |---|---|---|---|
 | **Frontend Type Check (`npx tsc --noEmit`)** | **0 Errors** | Zero TypeScript compilation errors | **PASS** |
 | **Frontend Production Build (`npm run build`)** | **SUCCESS** | Vite SPA bundle built cleanly | **PASS** |
-| **Backend Test Suite (`.\mvnw.cmd test`)** | **172 / 172 Passed** | 100% JUnit 5 + Spring Boot integration test success | **PASS** |
+| **Backend Test Suite (`.\mvnw.cmd test`)** | **184 / 184 Passed** | 100% JUnit 5 + Spring Boot integration test success | **PASS** |
 | **Master Dataset Active Inventory** | **36 Careers, 92 Active Skills, 177 Reqs** | Realistic relational dataset populated via Flyway V6 & V7 & V8 | **PASS** |
 | **User Intelligence & Profile Completeness** | **Expanded Profile & Flyway V8** | 20 profile intelligence fields + weighted completeness meter | **PASS** |
-| **Experience-Aware Skill Gap Engine** | **Multi-Dimensional Readiness** | Skill, Experience & Education alignment + Experience buffers | **PASS** |
-| **Roadmap System & Persistence** | **3, 6, 12 Month Strategies** | MySQL milestone status, progress %, notes, & regeneration safety | **PASS** |
+| **Password Reset Code Persistence** | **Flyway V9 & MySQL Repository** | 6-digit `SecureRandom`, 15-min expiry, 5-attempt limit, anti-enumeration | **PASS** |
+| **Brevo SMTP Mail Service** | **smtp-relay.brevo.com:587** | High-deliverability transactional delivery with health diagnostics | **PASS** |
 | **Real-Data Validation (Personas A-H)** | **100% Verified** | 8 personas across 5 careers validated; 0 regression | **PASS** |
-| **Git Branch Status** | **feature/user-intelligence-roadmap-validation** | Clean working tree, pushed to origin, unmerged into main | **PASS** |
+| **Git Branch Status** | **feature/brevo-forgot-password-smtp** | Feature committed, pushed to origin | **PASS** |
+
+
+
+
 
 
 
