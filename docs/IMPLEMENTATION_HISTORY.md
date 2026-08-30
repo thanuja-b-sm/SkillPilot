@@ -138,21 +138,34 @@
 - **Files Changed:** `application.yml`, `backend/.env.example`, `EmailService.java`, `AuthService.java`, `PasswordResetCode.java`, `V9__add_password_reset_codes.sql`, `AdminSystemConfigController.java`, `LoginPage.tsx`, `AdminDashboardPage.tsx`, `Phase18BrevoForgotPasswordIntegrationTest.java`, `BREVO_SMTP_FORGOT_PASSWORD_AUDIT.md`, `IMPLEMENTATION_HISTORY.md`.
 - **Verification:** Frontend `npx tsc --noEmit` (0 errors), `npm run build` (PASS), and backend `.\mvnw.cmd test` (**184 / 184 passed**, 0 failures, 0 errors).
 
+### Milestone 18: Database Reconciliation, Legacy Cleanup (Flyway V10) & Saved Careers Feature
+- **Problem:** Database audit revealed 48 unmanaged, empty legacy tables (e.g. `career_skills`, `user_answers`, `roles`, `permissions`, `roadmaps`, `skill_gap_reports`) created during prototype phases alongside 21 active Flyway-managed tables. Additionally, high-value student career discovery features (saving/favoriting careers) lacked persistence.
+- **Solution:** 
+  1. *Database Reconciliation Audit:* Audited all 70 tables in the MySQL `skillpilot` database across Entity → Repository → Service → Controller → Frontend. Documented complete classification matrix and schema consistency in `docs/architecture/DATABASE_RECONCILIATION.md` and safety plan in `docs/architecture/LEGACY_DATABASE_CLEANUP_PLAN.md`.
+  2. *Flyway V10 Legacy Schema Cleanup:* Created `V10__cleanup_legacy_tables_and_add_saved_careers.sql` dropping all 48 empty unmanaged legacy tables safely and creating the authoritative `saved_careers` table (`id VARCHAR(36)`, `user_id VARCHAR(36)`, `career_id VARCHAR(64)`, `notes TEXT`, `created_at`, `updated_at`).
+  3. *Backend Saved Careers Implementation:* Built `SavedCareer` entity, `SavedCareerRepository`, `SavedCareerResponse` DTO, `SavedCareerService`, and `SavedCareerController` exposing `GET /api/user/saved-careers`, `POST /api/user/saved-careers/{careerId}`, `DELETE /api/user/saved-careers/{careerId}`, and `GET /api/user/saved-careers/{careerId}/status`.
+  4. *Frontend Integration:* Updated `AppContext.tsx`, `CareerResultsPage.tsx`, and `ProfilePage.tsx` with live bookmark/heart toggles on career cards, dedicated "Saved Only" filter chips, and a new "7. Saved Careers" profile tab with quick navigation to target career selection and roadmap gap analysis.
+  5. *Test Suite & Verification:* Created `Phase19DatabaseReconciliationAndSavedCareersTest.java` (5 integration tests) verifying save/list, duplicate idempotence, unsave removal, user isolation, and saved status check.
+- **Files Changed:** `V10__cleanup_legacy_tables_and_add_saved_careers.sql`, `SavedCareer.java`, `SavedCareerRepository.java`, `SavedCareerResponse.java`, `SavedCareerService.java`, `SavedCareerController.java`, `AppContext.tsx`, `types.ts`, `CareerResultsPage.tsx`, `ProfilePage.tsx`, `Phase19DatabaseReconciliationAndSavedCareersTest.java`, `docs/architecture/DATABASE_RECONCILIATION.md`, `docs/architecture/LEGACY_DATABASE_CLEANUP_PLAN.md`, `docs/IMPLEMENTATION_HISTORY.md`.
+- **Verification:** Frontend `npx tsc --noEmit` (0 errors), `npm run build` (PASS), and backend `.\mvnw.cmd test` (**189 / 189 passed**, 0 failures, 0 errors across 26 test classes).
+
 ---
 
-## 📈 Final Pre-Merge Audit & Verification Summary
+## 📈 Final Verification Summary
 
 | Suite / Check | Result | Standard | Status |
 |---|---|---|---|
 | **Frontend Type Check (`npx tsc --noEmit`)** | **0 Errors** | Zero TypeScript compilation errors | **PASS** |
 | **Frontend Production Build (`npm run build`)** | **SUCCESS** | Vite SPA bundle built cleanly | **PASS** |
-| **Backend Test Suite (`.\mvnw.cmd test`)** | **184 / 184 Passed** | 100% JUnit 5 + Spring Boot integration test success | **PASS** |
-| **Master Dataset Active Inventory** | **36 Careers, 92 Active Skills, 177 Reqs** | Realistic relational dataset populated via Flyway V6 & V7 & V8 | **PASS** |
+| **Backend Test Suite (`.\mvnw.cmd test`)** | **189 / 189 Passed** | 100% JUnit 5 + Spring Boot integration test success (26 classes) | **PASS** |
+| **Database Reconciliation & Cleanliness** | **22 Active Tables** | 48 legacy empty tables safely dropped; Flyway schema at V10 | **PASS** |
+| **Saved Careers Feature** | **End-to-End Persisted** | Full stack integration: MySQL ↔ Spring Boot ↔ React Context ↔ UI | **PASS** |
+| **Master Dataset Active Inventory** | **36 Careers, 92 Active Skills, 177 Reqs** | Realistic relational dataset populated via Flyway V6-V8 | **PASS** |
 | **User Intelligence & Profile Completeness** | **Expanded Profile & Flyway V8** | 20 profile intelligence fields + weighted completeness meter | **PASS** |
 | **Password Reset Code Persistence** | **Flyway V9 & MySQL Repository** | 6-digit `SecureRandom`, 15-min expiry, 5-attempt limit, anti-enumeration | **PASS** |
 | **Brevo SMTP Mail Service** | **smtp-relay.brevo.com:587** | High-deliverability transactional delivery with health diagnostics | **PASS** |
-| **Real-Data Validation (Personas A-H)** | **100% Verified** | 8 personas across 5 careers validated; 0 regression | **PASS** |
-| **Git Branch Status** | **feature/brevo-forgot-password-smtp** | Feature committed, pushed to origin | **PASS** |
+| **Git Branch Status** | **feature/database-reconciliation-and-feature-completion** | Feature committed and pushed to origin (NOT merged to main) | **PASS** |
+
 
 
 
