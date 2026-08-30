@@ -128,6 +128,16 @@
 - **Files Changed:** `V9__add_password_reset_codes.sql`, `PasswordResetCode.java`, `PasswordResetCodeRepository.java`, `AuthService.java`, `EmailService.java`, `backend/.env.example`, `Phase18ForgotPasswordFlowTest.java`, `ForgotPasswordTest.java`, `FORGOT_PASSWORD_EMAIL_FIX.md`, `FORGOT_PASSWORD_RUNTIME_DEBUG.md`, `IMPLEMENTATION_HISTORY.md`.
 - **Verification:** Frontend `npx tsc --noEmit` (0 errors), `npm run build` (PASS), and backend `.\mvnw.cmd test` (**179 / 179 passed**).
 
+### Milestone 17: Brevo SMTP Forgot Password Migration & Production Hardening
+- **Problem:** Gmail SMTP required strict application passwords, had intermittent timeout/auth issues in production environments, and the Forgot Password UI lacked individual OTP boxes, countdown timers, and live diagnostics.
+- **Solution:** 
+  1. *Brevo SMTP Migration:* Replaced Gmail with Brevo SMTP relay (`smtp-relay.brevo.com:587`, STARTTLS enabled, 10s connection/read/write timeouts).
+  2. *Admin SMTP Diagnostics:* Added `GET /api/admin/system/mail-health` endpoint and live Mail Health Card in the Admin Dashboard (status, provider, sender, last successful dispatch timestamp, failure message).
+  3. *Frontend 6-Digit OTP Redesign:* Updated `LoginPage.tsx` with 6 dedicated OTP inputs, auto-focus, paste support, backspace navigation, 15-minute countdown, 60-second resend cooldown, password strength meter, and show/hide password toggles.
+  4. *Testing:* Created `Phase18BrevoForgotPasswordIntegrationTest.java` (5 integration tests) verifying Brevo SMTP configuration, MySQL persistence, code burning on 5 attempts, and health endpoint response.
+- **Files Changed:** `application.yml`, `backend/.env.example`, `EmailService.java`, `AuthService.java`, `PasswordResetCode.java`, `V9__add_password_reset_codes.sql`, `AdminSystemConfigController.java`, `LoginPage.tsx`, `AdminDashboardPage.tsx`, `Phase18BrevoForgotPasswordIntegrationTest.java`, `BREVO_SMTP_FORGOT_PASSWORD_AUDIT.md`, `IMPLEMENTATION_HISTORY.md`.
+- **Verification:** Frontend `npx tsc --noEmit` (0 errors), `npm run build` (PASS), and backend `.\mvnw.cmd test` (**184 / 184 passed**, 0 failures, 0 errors).
+
 ---
 
 ## 📈 Final Pre-Merge Audit & Verification Summary
@@ -136,12 +146,14 @@
 |---|---|---|---|
 | **Frontend Type Check (`npx tsc --noEmit`)** | **0 Errors** | Zero TypeScript compilation errors | **PASS** |
 | **Frontend Production Build (`npm run build`)** | **SUCCESS** | Vite SPA bundle built cleanly | **PASS** |
-| **Backend Test Suite (`.\mvnw.cmd test`)** | **179 / 179 Passed** | 100% JUnit 5 + Spring Boot integration test success | **PASS** |
+| **Backend Test Suite (`.\mvnw.cmd test`)** | **184 / 184 Passed** | 100% JUnit 5 + Spring Boot integration test success | **PASS** |
 | **Master Dataset Active Inventory** | **36 Careers, 92 Active Skills, 177 Reqs** | Realistic relational dataset populated via Flyway V6 & V7 & V8 | **PASS** |
 | **User Intelligence & Profile Completeness** | **Expanded Profile & Flyway V8** | 20 profile intelligence fields + weighted completeness meter | **PASS** |
 | **Password Reset Code Persistence** | **Flyway V9 & MySQL Repository** | 6-digit `SecureRandom`, 15-min expiry, 5-attempt limit, anti-enumeration | **PASS** |
+| **Brevo SMTP Mail Service** | **smtp-relay.brevo.com:587** | High-deliverability transactional delivery with health diagnostics | **PASS** |
 | **Real-Data Validation (Personas A-H)** | **100% Verified** | 8 personas across 5 careers validated; 0 regression | **PASS** |
-| **Git Branch Status** | **feature/fix-forgot-password-email-v3** | Feature committed, pushed to origin | **PASS** |
+| **Git Branch Status** | **feature/brevo-forgot-password-smtp** | Feature committed, pushed to origin | **PASS** |
+
 
 
 
