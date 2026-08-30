@@ -108,9 +108,11 @@ public class Phase18ForgotPasswordFlowTest {
         assertEquals(0, savedCode.getAttemptsCount());
         assertTrue(savedCode.getExpiresAt().isAfter(LocalDateTime.now()));
 
-        // Verify EmailService was called with generated code
-        verify(emailService).sendPasswordResetEmail(eq(userEmail), eq(savedCode.getResetCode()));
+        // Verify EmailService was called with generated code and metadata
+        verify(emailService).sendPasswordResetEmail(eq(userEmail), eq(savedCode.getResetCode()), eq(savedCode.getId()), org.mockito.ArgumentMatchers.any(LocalDateTime.class));
     }
+
+
 
     @Test
     @DisplayName("2. Unknown email returns generic success response without storing code or sending email (anti-enumeration)")
