@@ -138,6 +138,8 @@ public class AuthService {
     }
 
 
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(AuthService.class);
+
     @Transactional
     public com.skillpilot.dto.response.ForgotPasswordResponse forgotPassword(com.skillpilot.dto.request.ForgotPasswordRequest request) {
         if (request == null || request.getEmail() == null || request.getEmail().isBlank()) {
@@ -145,6 +147,7 @@ public class AuthService {
         }
 
         String email = request.getEmail().trim().toLowerCase();
+        logger.info("Forgot password request received for email: {}", email);
         java.util.Optional<User> userOpt = userRepository.findByEmailIgnoreCase(email);
 
         if (userOpt.isPresent()) {
@@ -165,10 +168,16 @@ public class AuthService {
                     .build();
 
             passwordResetCodeRepository.save(codeEntity);
+            logger.info("Password reset code generated and persisted to database for recipient: {} (ExpiresAt: {})", email, expiresAt);
 
             if (emailService != null) {
+                logger.info("Dispatching password reset verification email via EmailService for recipient: {}", email);
                 emailService.sendPasswordResetEmail(email, resetCode);
+            } else {
+                logger.warn("EmailService is not available; skipping email dispatch for recipient: {}", email);
             }
+        } else {
+            logger.info("Forgot password requested for non-existent email (anti-enumeration active): {}", email);
         }
 
         // Generic response — does not reveal whether the email exists (anti-enumeration)
@@ -185,19 +194,26 @@ public class AuthService {
         }
 
         String email = request.getEmail().trim().toLowerCase();
+        logger.info("Password reset submission received for email: {}", email);
+
         com.skillpilot.entity.PasswordResetCode activeCode = passwordResetCodeRepository
                 .findFirstByEmailIgnoreCaseAndIsUsedFalseOrderByCreatedAtDesc(email)
-                .orElseThrow(() -> new BadRequestException("Invalid or expired verification reset code. Please request a new code."));
+                .orElseThrow(() -> {
+                    logger.warn("Password reset failed: No active/unused reset code found in database for email: {}", email);
+                    return new BadRequestException("Invalid or expired verification reset code. Please request a new code.");
+                });
 
         if (activeCode.getExpiresAt().isBefore(java.time.LocalDateTime.now())) {
             activeCode.setIsUsed(true);
             passwordResetCodeRepository.save(activeCode);
+            logger.warn("Password reset failed: Reset code expired for email: {}", email);
             throw new BadRequestException("Verification reset code has expired. Please request a new code.");
         }
 
         if (activeCode.getAttemptsCount() >= MAX_RESET_ATTEMPTS) {
             activeCode.setIsUsed(true);
             passwordResetCodeRepository.save(activeCode);
+            logger.warn("Password reset failed: Max attempts ({}) exceeded for email: {}", MAX_RESET_ATTEMPTS, email);
             throw new BadRequestException("Maximum verification attempts exceeded. Please request a new verification code.");
         }
 
@@ -207,6 +223,7 @@ public class AuthService {
                 activeCode.setIsUsed(true);
             }
             passwordResetCodeRepository.save(activeCode);
+            logger.warn("Password reset code mismatch for email: {}. Attempt count: {}/{}", email, activeCode.getAttemptsCount(), MAX_RESET_ATTEMPTS);
             if (activeCode.getIsUsed()) {
                 throw new BadRequestException("Maximum verification attempts exceeded. Please request a new verification code.");
             }
@@ -226,11 +243,13 @@ public class AuthService {
         // Mark code as used
         activeCode.setIsUsed(true);
         passwordResetCodeRepository.save(activeCode);
+        logger.info("Password reset successfully completed in database for email: {}", email);
 
         return com.skillpilot.dto.response.ForgotPasswordResponse.builder()
                 .message("Password updated successfully. You can now log in with your new password.")
                 .resetCode(null)
                 .build();
     }
+
 }
 
