@@ -5,6 +5,7 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,6 +37,10 @@ public class User {
     @Column(nullable = false, length = 20)
     @Builder.Default
     private UserRole role = UserRole.STUDENT;
+
+    @Column(name = "is_verified", nullable = false)
+    @Builder.Default
+    private Boolean isVerified = true;
 
     @Column(length = 150)
     @Builder.Default
@@ -84,8 +89,8 @@ public class User {
     @Column(length = 100)
     private String country;
 
-    @Column(name = "date_of_birth", length = 20)
-    private String dateOfBirth;
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
 
     @Column(name = "target_focus", length = 150)
     @Builder.Default
