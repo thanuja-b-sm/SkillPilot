@@ -46,6 +46,9 @@ public class Phase8RoadmapGenerationTest {
     @Autowired
     private CareerMapper careerMapper;
 
+    @Autowired
+    private com.skillpilot.repository.EmailVerificationRepository emailVerificationRepository;
+
     private RoadmapGenerationEngine engine;
 
     private Skill pySkill;
@@ -262,19 +265,32 @@ public class Phase8RoadmapGenerationTest {
             return (String) resp.get("token");
         }
 
-        // Fallback: register new user
+        // Fallback: register new user and complete email verification
         Map<String, String> regReq = Map.of(
                 "email", email,
                 "password", password,
                 "name", "Test User " + UUID.randomUUID().toString().substring(0, 5)
         );
-        MvcResult regResult = mockMvc.perform(post("/api/auth/register")
+        mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(regReq)))
-                .andExpect(status().isCreated())
+                .andExpect(status().isCreated());
+
+        var verification = emailVerificationRepository.findFirstByEmailIgnoreCaseAndIsVerifiedFalseOrderByCreatedAtDesc(email)
+                .orElseThrow(() -> new AssertionError("Verification code should exist for " + email));
+
+        Map<String, String> verifyReq = Map.of(
+                "email", email,
+                "verificationCode", verification.getVerificationCode()
+        );
+
+        MvcResult verifyResult = mockMvc.perform(post("/api/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(verifyReq)))
+                .andExpect(status().isOk())
                 .andReturn();
 
-        Map<?, ?> resp = objectMapper.readValue(regResult.getResponse().getContentAsString(), Map.class);
+        Map<?, ?> resp = objectMapper.readValue(verifyResult.getResponse().getContentAsString(), Map.class);
         return (String) resp.get("token");
     }
 }

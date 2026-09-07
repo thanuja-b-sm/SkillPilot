@@ -103,8 +103,11 @@ public class Phase4AuthenticationProfileTest {
         adminToken = jwtTokenProvider.generateToken(adminAuth);
     }
 
+    @Autowired
+    private com.skillpilot.repository.EmailVerificationRepository emailVerificationRepository;
+
     @Test
-    @DisplayName("1. Successful Registration creates STUDENT and returns AuthResponse")
+    @DisplayName("1. Successful Registration creates STUDENT and requires email verification")
     void test1_SuccessfulRegistration() throws Exception {
         RegisterRequest req = RegisterRequest.builder()
                 .name("New Student Candidate")
@@ -118,6 +121,22 @@ public class Phase4AuthenticationProfileTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.requiresVerification", is(true)))
+                .andExpect(jsonPath("$.email", is("new.candidate@university.edu")));
+
+        // Complete verification with code to obtain JWT and profile
+        var verification = emailVerificationRepository.findFirstByEmailIgnoreCaseAndIsVerifiedFalseOrderByCreatedAtDesc("new.candidate@university.edu")
+                .orElseThrow(() -> new AssertionError("Verification record should exist"));
+
+        com.skillpilot.dto.request.VerifyEmailRequest verifyReq = com.skillpilot.dto.request.VerifyEmailRequest.builder()
+                .email("new.candidate@university.edu")
+                .verificationCode(verification.getVerificationCode())
+                .build();
+
+        mockMvc.perform(post("/api/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(verifyReq)))
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token", notNullValue()))
                 .andExpect(jsonPath("$.userRole", is("student")))
                 .andExpect(jsonPath("$.userProfile.email", is("new.candidate@university.edu")))
