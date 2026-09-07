@@ -149,6 +149,23 @@
 - **Files Changed:** `V10__cleanup_legacy_tables_and_add_saved_careers.sql`, `SavedCareer.java`, `SavedCareerRepository.java`, `SavedCareerResponse.java`, `SavedCareerService.java`, `SavedCareerController.java`, `AppContext.tsx`, `types.ts`, `CareerResultsPage.tsx`, `ProfilePage.tsx`, `Phase19DatabaseReconciliationAndSavedCareersTest.java`, `docs/architecture/DATABASE_RECONCILIATION.md`, `docs/architecture/LEGACY_DATABASE_CLEANUP_PLAN.md`, `docs/IMPLEMENTATION_HISTORY.md`.
 - **Verification:** Frontend `npx tsc --noEmit` (0 errors), `npm run build` (PASS), and backend `.\mvnw.cmd test` (**189 / 189 passed**, 0 failures, 0 errors across 26 test classes).
 
+### Milestone 19: UX Polish, Registration Email Verification, DOB Validation & Intelligence Architecture
+- **Problem:**
+  1. `frontend/index.html` lacked the SkillPilot branded favicon.
+  2. Login and registration password fields had no show/hide visibility controls.
+  3. New users could register without email verification, bypassing authentication security.
+  4. Profile Date of Birth used an unvalidated text input and `VARCHAR(20)` storage, allowing invalid/future dates.
+  5. The platform lacked an authoritative third-party dependency audit and formal mathematical documentation of the Algorithm v2.5 intelligence engines.
+- **Solution:**
+  1. *Favicon:* Designed high-resolution SVG favicon (`frontend/public/favicon.svg`) with dark slate-900 container and blue compass needle. Linked in `index.html` with theme-color metadata.
+  2. *Password Visibility:* Implemented accessible show/hide password toggle buttons (`Eye`, `EyeOff` from `lucide-react`) on `LoginPage.tsx` and `RegistrationPage.tsx` with proper ARIA attributes.
+  3. *Registration Email Verification:* Added Flyway migration `V11__add_user_email_verification.sql` (`is_verified` column defaulting to TRUE for all existing users; `email_verifications` table). Updated `AuthService.register()` to create unverified accounts, generate 6-digit `SecureRandom` codes, and dispatch branded emails via Brevo SMTP. Created `verifyEmail()` and `resendVerificationCode()` with rate-limiting and 5-attempt lockouts. Created interactive verification UI on `RegistrationPage.tsx`. Blocked unverified logins.
+  4. *Date of Birth UI & Schema Refinement:* Converted MySQL column to `DATE NULL` via Flyway `V11`. Upgraded UI in `ProfilePage.tsx` to native accessible `<input type="date">` bounded between 1900 and current date. Added strict backend validation (13-120 year age bounds, future date rejection).
+  5. *Testing:* Added `RegistrationVerificationTest.java` (9 comprehensive integration tests covering complete lifecycle, lockouts, resend invalidation, existing user backwards compatibility, and DOB validation).
+  6. *Architecture Reports:* Authored `docs/architecture/DEPENDENCY_AND_LIBRARY_REPORT.md` (complete runtime vs dev audit) and `docs/architecture/CAREER_INTELLIGENCE_ENGINE.md` (exact formulas for Career Scoring v2.5, Skill Gap Analysis, 3/6/12 month Roadmap strategies, and strict Gemini demarcation).
+- **Files Changed:** `favicon.svg`, `index.html`, `LoginPage.tsx`, `RegistrationPage.tsx`, `ProfilePage.tsx`, `V11__add_user_email_verification.sql`, `User.java`, `EmailVerification.java`, `EmailVerificationRepository.java`, `VerifyEmailRequest.java`, `ResendVerificationRequest.java`, `AuthResponse.java`, `AuthService.java`, `EmailService.java`, `UserProfileMapper.java`, `UserProfileService.java`, `SecurityConfig.java`, `RegistrationVerificationTest.java`, `UX_AUTH_PROFILE_FIXES.md`, `DEPENDENCY_AND_LIBRARY_REPORT.md`, `CAREER_INTELLIGENCE_ENGINE.md`, `IMPLEMENTATION_HISTORY.md`.
+- **Verification:** Frontend `npx tsc --noEmit` (0 errors), `npm run build` (PASS, `dist/favicon.svg` bundled), backend `RegistrationVerificationTest` (9/9 passed).
+
 ---
 
 ## 📈 Final Verification Summary
@@ -156,15 +173,14 @@
 | Suite / Check | Result | Standard | Status |
 |---|---|---|---|
 | **Frontend Type Check (`npx tsc --noEmit`)** | **0 Errors** | Zero TypeScript compilation errors | **PASS** |
-| **Frontend Production Build (`npm run build`)** | **SUCCESS** | Vite SPA bundle built cleanly | **PASS** |
-| **Backend Test Suite (`.\mvnw.cmd test`)** | **189 / 189 Passed** | 100% JUnit 5 + Spring Boot integration test success (26 classes) | **PASS** |
-| **Database Reconciliation & Cleanliness** | **22 Active Tables** | 48 legacy empty tables safely dropped; Flyway schema at V10 | **PASS** |
-| **Saved Careers Feature** | **End-to-End Persisted** | Full stack integration: MySQL ↔ Spring Boot ↔ React Context ↔ UI | **PASS** |
-| **Master Dataset Active Inventory** | **36 Careers, 92 Active Skills, 177 Reqs** | Realistic relational dataset populated via Flyway V6-V8 | **PASS** |
-| **User Intelligence & Profile Completeness** | **Expanded Profile & Flyway V8** | 20 profile intelligence fields + weighted completeness meter | **PASS** |
-| **Password Reset Code Persistence** | **Flyway V9 & MySQL Repository** | 6-digit `SecureRandom`, 15-min expiry, 5-attempt limit, anti-enumeration | **PASS** |
-| **Brevo SMTP Mail Service** | **smtp-relay.brevo.com:587** | High-deliverability transactional delivery with health diagnostics | **PASS** |
-| **Git Branch Status** | **feature/database-reconciliation-and-feature-completion** | Feature committed and pushed to origin (NOT merged to main) | **PASS** |
+| **Frontend Production Build (`npm run build`)** | **SUCCESS** | Vite SPA bundle built cleanly with favicon | **PASS** |
+| **Backend Test Suite (`.\mvnw.cmd test`)** | **198 / 198 Passed** | 100% JUnit 5 + Spring Boot integration test success (27 classes) | **PASS** |
+| **Registration Verification Flow** | **End-to-End Persisted** | Brevo SMTP + MySQL `email_verifications` + 6-digit verification UI | **PASS** |
+| **Password Visibility Controls** | **Accessible Toggles** | Eye / EyeOff icons on Login and Register forms | **PASS** |
+| **Date of Birth Refinement** | **Flyway V11 & Native Date Picker** | MySQL `DATE NULL` + HTML5 date picker + age 13-120 validation | **PASS** |
+| **Third-Party Dependency Audit** | **Documented** | `docs/architecture/DEPENDENCY_AND_LIBRARY_REPORT.md` | **PASS** |
+| **Career Intelligence Architecture** | **Documented** | `docs/architecture/CAREER_INTELLIGENCE_ENGINE.md` | **PASS** |
+| **Git Branch Status** | **feature/ux-auth-polish-and-engine-documentation** | Feature branch ready for push (NOT merged to main) | **PASS** |
 
 
 
