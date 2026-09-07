@@ -52,7 +52,7 @@ public class UserProfileMapper {
                 .relevantExperienceYears(user.getRelevantExperienceYears() != null ? user.getRelevantExperienceYears() : 0)
                 .location(user.getLocation() != null ? user.getLocation() : "")
                 .country(user.getCountry())
-                .dateOfBirth(user.getDateOfBirth())
+                .dateOfBirth(user.getDateOfBirth() != null ? user.getDateOfBirth().toString() : null)
                 .targetFocus(user.getTargetFocus() != null ? user.getTargetFocus() : "")
                 .preferredWorkMode(user.getPreferredWorkMode())
                 .preferredEmploymentType(user.getPreferredEmploymentType())

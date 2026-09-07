@@ -3,10 +3,14 @@ package com.skillpilot.service;
 import com.skillpilot.dto.request.ProfileUpdateRequest;
 import com.skillpilot.dto.response.UserProfileResponse;
 import com.skillpilot.entity.User;
+import com.skillpilot.exception.BadRequestException;
 import com.skillpilot.exception.ResourceNotFoundException;
 import com.skillpilot.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 
 @Service
 public class UserProfileService {
@@ -56,7 +60,27 @@ public class UserProfileService {
 
             if (request.getLocation() != null) user.setLocation(request.getLocation().trim());
             if (request.getCountry() != null) user.setCountry(request.getCountry().trim());
-            if (request.getDateOfBirth() != null) user.setDateOfBirth(request.getDateOfBirth().trim());
+            if (request.getDateOfBirth() != null) {
+                String dobStr = request.getDateOfBirth().trim();
+                if (dobStr.isEmpty()) {
+                    user.setDateOfBirth(null);
+                } else {
+                    LocalDate dob;
+                    try {
+                        dob = LocalDate.parse(dobStr);
+                    } catch (DateTimeParseException e) {
+                        throw new BadRequestException("Invalid date format for date of birth. Please use YYYY-MM-DD.");
+                    }
+                    LocalDate now = LocalDate.now();
+                    if (dob.isAfter(now)) {
+                        throw new BadRequestException("Date of birth cannot be in the future");
+                    }
+                    if (dob.isBefore(now.minusYears(120)) || dob.isAfter(now.minusYears(13))) {
+                        throw new BadRequestException("Please enter a valid date of birth (age must be between 13 and 120 years)");
+                    }
+                    user.setDateOfBirth(dob);
+                }
+            }
 
             if (request.getTargetFocus() != null) user.setTargetFocus(request.getTargetFocus().trim());
             if (request.getPreferredWorkMode() != null) user.setPreferredWorkMode(request.getPreferredWorkMode().trim());
