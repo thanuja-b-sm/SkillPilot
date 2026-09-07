@@ -20,6 +20,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -36,6 +37,7 @@ public class AuthService {
     private static final Pattern PASSWORD_PATTERN = Pattern.compile("^(?=.*[0-9])(?=.*[A-Z]).{8,}$");
 
     private final com.skillpilot.repository.PasswordResetCodeRepository passwordResetCodeRepository;
+    private final com.skillpilot.repository.EmailVerificationRepository emailVerificationRepository;
     private static final java.security.SecureRandom SECURE_RANDOM = new java.security.SecureRandom();
     private static final int MAX_RESET_ATTEMPTS = 5;
 
@@ -47,7 +49,8 @@ public class AuthService {
             AuthenticationManager authenticationManager,
             UserProfileMapper userProfileMapper,
             @org.springframework.beans.factory.annotation.Autowired(required = false) EmailService emailService,
-            com.skillpilot.repository.PasswordResetCodeRepository passwordResetCodeRepository) {
+            com.skillpilot.repository.PasswordResetCodeRepository passwordResetCodeRepository,
+            com.skillpilot.repository.EmailVerificationRepository emailVerificationRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenProvider = tokenProvider;
@@ -55,6 +58,7 @@ public class AuthService {
         this.userProfileMapper = userProfileMapper;
         this.emailService = emailService;
         this.passwordResetCodeRepository = passwordResetCodeRepository;
+        this.emailVerificationRepository = emailVerificationRepository;
     }
 
     @Transactional
@@ -78,6 +82,7 @@ public class AuthService {
                 .email(email)
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .role(UserRole.STUDENT) // Hardcoded STUDENT to prevent privilege escalation
+                .isVerified(false)
                 .title("Student Profile")
                 .education(request.getEducation() != null ? request.getEducation().trim() : "Computer Science Senior")
                 .experienceYears(0)
@@ -87,19 +92,40 @@ public class AuthService {
                 .completionPercentage(0)
                 .build();
 
-        User savedUser = userRepository.save(user);
+        // Invalidate previous active verification codes if any
+        emailVerificationRepository.invalidateAllActiveCodesForEmail(email);
 
-        SecurityUser securityUser = new SecurityUser(savedUser);
-        Authentication authentication = new UsernamePasswordAuthenticationToken(
-                securityUser, null, securityUser.getAuthorities());
+        User savedUser = userRepository.saveAndFlush(user);
 
-        String token = tokenProvider.generateToken(authentication);
-        UserProfileResponse profileResponse = userProfileMapper.toProfileResponse(savedUser);
+        // Generate 6-digit cryptographically secure verification code
+        String verificationCode = String.format("%06d", SECURE_RANDOM.nextInt(1000000));
+        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(15);
+        String verificationId = UUID.randomUUID().toString();
+
+        com.skillpilot.entity.EmailVerification verificationEntity = com.skillpilot.entity.EmailVerification.builder()
+                .id(verificationId)
+                .userId(savedUser.getId())
+                .email(email)
+                .verificationCode(verificationCode)
+                .expiresAt(expiresAt)
+                .attemptsCount(0)
+                .isVerified(false)
+                .build();
+
+        emailVerificationRepository.save(verificationEntity);
+        logger.info("Account email verification code generated and persisted for user: {} [VerificationID: {}, ExpiresAt: {}]", email, verificationId, expiresAt);
+
+        if (emailService != null) {
+            logger.info("Dispatching account verification email via EmailService to recipient: {}", email);
+            emailService.sendEmailVerificationCode(email, verificationCode, expiresAt);
+        } else {
+            logger.warn("EmailService is not available; skipping account verification email dispatch for recipient: {}", email);
+        }
 
         return AuthResponse.builder()
-                .token(token)
-                .userRole(savedUser.getRole().getValue())
-                .userProfile(profileResponse)
+                .requiresVerification(true)
+                .email(email)
+                .message("Account registered successfully. Please enter the 6-digit verification code sent to your email.")
                 .build();
     }
 
@@ -115,6 +141,11 @@ public class AuthService {
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new UnauthorizedException("Invalid email or password");
+        }
+
+        if (!Boolean.TRUE.equals(user.getIsVerified())) {
+            logger.warn("Login rejected for unverified account: {}", email);
+            throw new BadRequestException("Account email is not verified. Please verify your email before logging in.");
         }
 
         Authentication authentication = authenticationManager.authenticate(
@@ -255,5 +286,139 @@ public class AuthService {
                 .build();
     }
 
+    @Transactional
+    public AuthResponse verifyEmail(com.skillpilot.dto.request.VerifyEmailRequest request) {
+        if (request == null || request.getEmail() == null || request.getVerificationCode() == null) {
+            throw new BadRequestException("Email and verification code are required");
+        }
+
+        String email = request.getEmail().trim().toLowerCase();
+        logger.info("Account email verification attempt received for: {}", email);
+
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+
+        if (Boolean.TRUE.equals(user.getIsVerified())) {
+            SecurityUser securityUser = new SecurityUser(user);
+            Authentication authentication = new UsernamePasswordAuthenticationToken(
+                    securityUser, null, securityUser.getAuthorities());
+            String token = tokenProvider.generateToken(authentication);
+            UserProfileResponse profileResponse = userProfileMapper.toProfileResponse(user);
+            return AuthResponse.builder()
+                    .token(token)
+                    .userRole(user.getRole().getValue())
+                    .userProfile(profileResponse)
+                    .requiresVerification(false)
+                    .message("Account is already verified.")
+                    .build();
+        }
+
+        com.skillpilot.entity.EmailVerification activeCode = emailVerificationRepository
+                .findFirstByEmailIgnoreCaseAndIsVerifiedFalseOrderByCreatedAtDesc(email)
+                .orElseThrow(() -> {
+                    logger.warn("Email verification failed: No active verification code found in database for email: {}", email);
+                    return new BadRequestException("Invalid or expired verification code. Please request a new code.");
+                });
+
+        if (activeCode.getExpiresAt().isBefore(java.time.LocalDateTime.now())) {
+            activeCode.setIsVerified(true);
+            emailVerificationRepository.save(activeCode);
+            logger.warn("Email verification failed: Verification code expired for email: {}", email);
+            throw new BadRequestException("Verification code has expired. Please request a new code.");
+        }
+
+        if (activeCode.getAttemptsCount() >= MAX_RESET_ATTEMPTS) {
+            activeCode.setIsVerified(true);
+            emailVerificationRepository.save(activeCode);
+            logger.warn("Email verification failed: Max attempts ({}) exceeded for email: {}", MAX_RESET_ATTEMPTS, email);
+            throw new BadRequestException("Maximum verification attempts exceeded. Please request a new verification code.");
+        }
+
+        if (!activeCode.getVerificationCode().equals(request.getVerificationCode().trim())) {
+            activeCode.setAttemptsCount(activeCode.getAttemptsCount() + 1);
+            if (activeCode.getAttemptsCount() >= MAX_RESET_ATTEMPTS) {
+                activeCode.setIsVerified(true);
+            }
+            emailVerificationRepository.save(activeCode);
+            logger.warn("Email verification code mismatch for email: {}. Attempt count: {}/{}", email, activeCode.getAttemptsCount(), MAX_RESET_ATTEMPTS);
+            if (Boolean.TRUE.equals(activeCode.getIsVerified())) {
+                throw new BadRequestException("Maximum verification attempts exceeded. Please request a new verification code.");
+            }
+            throw new BadRequestException("Invalid verification code.");
+        }
+
+        activeCode.setIsVerified(true);
+        emailVerificationRepository.save(activeCode);
+
+        user.setIsVerified(true);
+        User verifiedUser = userRepository.save(user);
+        logger.info("Account email successfully verified for user: {}", email);
+
+        SecurityUser securityUser = new SecurityUser(verifiedUser);
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                securityUser, null, securityUser.getAuthorities());
+        String token = tokenProvider.generateToken(authentication);
+        UserProfileResponse profileResponse = userProfileMapper.toProfileResponse(verifiedUser);
+
+        return AuthResponse.builder()
+                .token(token)
+                .userRole(verifiedUser.getRole().getValue())
+                .userProfile(profileResponse)
+                .requiresVerification(false)
+                .message("Account email verified successfully.")
+                .build();
+    }
+
+    @Transactional
+    public AuthResponse resendVerificationCode(com.skillpilot.dto.request.ResendVerificationRequest request) {
+        if (request == null || request.getEmail() == null || request.getEmail().isBlank()) {
+            throw new BadRequestException("Email address is required");
+        }
+
+        String email = request.getEmail().trim().toLowerCase();
+        logger.info("Resend verification code requested for email: {}", email);
+        java.util.Optional<User> userOpt = userRepository.findByEmailIgnoreCase(email);
+
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            if (!Boolean.TRUE.equals(user.getIsVerified())) {
+                emailVerificationRepository.invalidateAllActiveCodesForEmail(email);
+
+                String verificationCode = String.format("%06d", SECURE_RANDOM.nextInt(1000000));
+                LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(15);
+                String verificationId = UUID.randomUUID().toString();
+
+                com.skillpilot.entity.EmailVerification verificationEntity = com.skillpilot.entity.EmailVerification.builder()
+                        .id(verificationId)
+                        .userId(user.getId())
+                        .email(email)
+                        .verificationCode(verificationCode)
+                        .expiresAt(expiresAt)
+                        .attemptsCount(0)
+                        .isVerified(false)
+                        .build();
+
+                emailVerificationRepository.save(verificationEntity);
+                logger.info("New verification code persisted for user: {} [VerificationID: {}, ExpiresAt: {}]", email, verificationId, expiresAt);
+
+                if (emailService != null) {
+                    logger.info("Dispatching new verification email to recipient: {}", email);
+                    emailService.sendEmailVerificationCode(email, verificationCode, expiresAt);
+                } else {
+                    logger.warn("EmailService is not available; skipping email dispatch for recipient: {}", email);
+                }
+            } else {
+                logger.info("User {} is already verified; no new verification code generated.", email);
+            }
+        } else {
+            logger.info("Resend verification requested for non-existent email (anti-enumeration active): {}", email);
+        }
+
+        return AuthResponse.builder()
+                .requiresVerification(true)
+                .email(email)
+                .message("If an unverified account with that email address exists, a new 6-digit verification code has been sent.")
+                .build();
+    }
 }
 
