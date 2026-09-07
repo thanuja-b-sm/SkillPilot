@@ -29,10 +29,12 @@ SkillPilot is engineered as a high-performance, deterministic career intelligenc
 | **`motion`** | `^12.23.24` | Animation Engine | Modals, notification toasts, transitions | High-performance hardware-accelerated animations (formerly Framer Motion) for smooth modal entrances, drawer animations, and feedback toasts. |
 | **`express`** | `^4.21.2` | Production Web Server | `frontend/server.ts` | Minimalist Node.js web server used in containerized or standalone production deployments to serve the compiled `dist/` SPA bundle and reverse-proxy `/api` requests to Spring Boot. |
 | **`dotenv`** | `^17.2.3` | Environment Config | `frontend/server.ts` | Loads environment variables (`PORT`, `API_TARGET`) from `.env` files into Node `process.env` during server runtime. |
-| **`@google/genai`** | `^2.4.0` | Optional Client AI | Frontend exploratory scripts | Official Google GenAI JavaScript SDK for potential clientside fallback analysis or exploratory prototyping. *(Note: Production explanation calls are routed deterministically via the backend).* |
+| **`@google/genai`** | `^2.4.0` | Node Server AI Client | `frontend/server.ts` | Official Google GenAI SDK utilized by the Express server in `server.ts` to power the `POST /api/ai/enhance-summary` endpoint using `gemini-3.6-flash` (bundled into `dist/server.js` via `esbuild`). *(Note: When deployed directly against Spring Boot without `server.ts`, Spring Boot's `AiController` / `GeminiExplanationService` handles this endpoint natively via `java.net.http.HttpClient`).* |
 | **`@tailwindcss/vite`** | `^4.1.14` | Styling Integration | `vite.config.ts`, `index.css` | First-party Vite plugin for Tailwind CSS 4 engine, compiling utility classes directly during the Vite pipeline. |
 | **`@vitejs/plugin-react`**| `^5.0.4` | Vite Plugin | `vite.config.ts` | Enables Fast Refresh (HMR) and Babel/SWC JSX transformation for React components in Vite. |
 | **`vite`** | `^6.2.3` | Bundler & Dev Server | Root tooling | Next-generation frontend build tool providing instantaneous ES module dev serving and Rollup-based production chunking. |
+
+*(Note on Routing: SkillPilot intentionally does not declare `react-router-dom`. Navigation is managed cleanly via centralized state routing in `AppContext.tsx` (`activeTab`), preventing URL hash synchronization issues and minimizing client bundle overhead).*
 
 ### 1.2 Development & Build Dependencies
 

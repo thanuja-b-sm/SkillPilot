@@ -37,7 +37,7 @@ flowchart TD
     end
 
     subgraph OptionalAILayer["5. Optional Explanation Layer (Gemini REST)"]
-        GEM["Gemini 2.5 Flash\n(Narrative & Executive Summary)"]
+        GEM["Gemini Flash\n(gemini-flash-latest / gemini-1.5-flash)\nNarrative & Summary"]
         FAL["Deterministic System Fallback\n(Guaranteed SLA)"]
     end
 
@@ -260,7 +260,7 @@ To ensure academic integrity, verifiable calculations, and zero hallucinations:
   • Milestone schedules & priorities
             │
             ▼ (Fixed numerical facts passed in prompt)
-[ Gemini 2.5 Flash Layer (Optional) ]
+[ Gemini Flash Layer (Optional) ]
   • Explanatory narrative
   • Executive summary for portfolio
             │
