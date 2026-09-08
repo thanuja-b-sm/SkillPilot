@@ -9,6 +9,13 @@ if (-not (Test-Path $envFile)) {
     exit 1
 }
 
+# Ensure Java 17 is used if installed in default path
+if (Test-Path "C:\Program Files\Java\jdk-17") {
+    $env:JAVA_HOME = "C:\Program Files\Java\jdk-17"
+    $env:PATH = "C:\Program Files\Java\jdk-17\bin;$env:PATH"
+    [System.Environment]::SetEnvironmentVariable("JAVA_HOME", "C:\Program Files\Java\jdk-17", "Process")
+}
+
 Write-Host "Loading environment from .env ..." -ForegroundColor Cyan
 
 Get-Content $envFile | ForEach-Object {
@@ -19,7 +26,16 @@ Get-Content $envFile | ForEach-Object {
     if ($parts.Length -eq 2) {
         $key   = $parts[0].Trim()
         $value = $parts[1].Trim()
+        # Strip surrounding matching quotes if present
+        if (($value.StartsWith('"') -and $value.EndsWith('"')) -or ($value.StartsWith("'") -and $value.EndsWith("'"))) {
+            $value = $value.Substring(1, $value.Length - 2)
+        }
         [System.Environment]::SetEnvironmentVariable($key, $value, "Process")
+        if ($value -eq "") {
+            Remove-Item -Path "env:$key" -ErrorAction SilentlyContinue
+        } else {
+            Set-Item -Path "env:$key" -Value $value -ErrorAction SilentlyContinue
+        }
         Write-Host "  SET $key" -ForegroundColor DarkGray
     }
 }
